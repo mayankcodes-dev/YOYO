@@ -1,0 +1,9 @@
+{
+  "name": "quickstay-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server/server.js",
+    "postinstall": "cd server && yarn install"
+  }
+}
