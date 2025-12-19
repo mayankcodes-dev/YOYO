@@ -97,7 +97,7 @@ const MyBookings = () => {
                                 </p>
                             </div>
                         </div>
-                        {/* ------------- Payment Status --------------- */}
+                        {/* ------------- Payment Status ---------------- */}
                         <div className='flex flex-col items-start justify-center pt-3'>
                             <div className='flex items-center gap-2'>
                                 <div className={`h-3 w-3 rounded-full ${booking.isPaid ? "bg-green-500" : "bg-red-500"}`}></div>
