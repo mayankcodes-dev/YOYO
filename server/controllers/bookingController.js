@@ -2,9 +2,7 @@ import transporter from "../configs/nodemailer.js";
 import Booking from "../models/Booking.js";
 import Hotel from "../models/Hotel.js";
 import Room from "../models/Room.js";
-
-
-
+import stripe from "stripe";
 
 // function to check availibility of rooms for given date range
 const checkAvailibility = async ({checkInDate, checkOutDate, room})=>{
@@ -17,7 +15,7 @@ const checkAvailibility = async ({checkInDate, checkOutDate, room})=>{
         const isAvailable = bookings.length === 0;
         return isAvailable;
     } catch (error) {
-        console.error(error.message);
+        return false;
     }
 }
 
@@ -98,7 +96,6 @@ export const createBooking = async (req, res)=>{
         res.json({success: true, message: 'Booking created successfully', booking});
 
     } catch (error) {
-        console.log(error);
         res.json({success: false, message: error.message});
     }
 };
@@ -129,6 +126,88 @@ export const getHotelBookings = async (req, res)=>{
         const totalRevenue = bookings.reduce((total, booking) => total + booking.totalPrice, 0);
 
         res.json({ success: true, dashboardData: { bookings, totalBookings, totalRevenue }});
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
+export const stripePayment = async (req, res) =>{
+    try {
+        const { bookingId } = req.body;
+        const booking = await Booking.findById(bookingId)
+        const roomData = await Room.findById(booking.room).populate('hotel');
+        const totalPrice = booking.totalPrice; // in cents
+        const { origin } = req.headers;
+
+        const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+
+        const line_items = [
+            {
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: roomData.hotel.name,
+                    },
+                    unit_amount: totalPrice * 100, // amount in cents
+                },
+                quantity: 1,
+            },
+        ];
+
+        //checkout session
+        const session  = await stripeInstance.checkout.sessions.create({
+            line_items,
+            mode: 'payment',
+            success_url: `${origin}/loader/my-bookings`,
+            cancel_url: `${origin}/my-bookings`,
+            metadata:{
+                bookingId: bookingId.toString(),
+            }
+        })
+        res.json({success: true, url: session.url});
+    } catch (error) {
+        res.json({success: false, message: error.message});
+    }
+}
+
+// API to verify stripe payment and update booking status
+export const verifyStripePayment = async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+        
+        if (!bookingId) {
+            return res.json({ success: false, message: 'Booking ID is required' });
+        }
+
+        const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+        
+        // Find checkout sessions with this bookingId in metadata
+        const sessions = await stripeInstance.checkout.sessions.list({
+            limit: 100,
+        });
+        
+        // Find the session for this booking
+        const session = sessions.data.find(s => s.metadata?.bookingId === bookingId);
+        
+        if (session && session.payment_status === 'paid') {
+            // Update booking as paid
+            const updatedBooking = await Booking.findByIdAndUpdate(
+                bookingId, 
+                {
+                    isPaid: true,
+                    paymentMethod: 'Stripe',
+                },
+                { new: true }
+            );
+            
+            if (updatedBooking) {
+                return res.json({ success: true, message: 'Payment verified and booking updated' });
+            }
+            return res.json({ success: false, message: 'Booking not found' });
+        }
+        
+        res.json({ success: false, message: 'Payment not completed or session not found' });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
