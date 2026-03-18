@@ -13,6 +13,7 @@ import ListRoom from "./pages/hotelOwner/ListRoom";
 import { Toaster } from "react-hot-toast";
 import { useAppContext } from "./context/AppContext";
 import Loader from "./components/Loader";
+import { Analytics } from "@vercel/analytics/react";
 
 const App = () => {
 
@@ -40,6 +41,7 @@ const App = () => {
       </Routes>
    </div>
       <Footer />
+      <Analytics />
   </div>
   )
 }
