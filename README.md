@@ -1,74 +1,145 @@
-## QuickStay
+<p align="center">
+  <img src="client/public/favicon.svg" alt="QuickStay Logo" width="80" height="80" />
+</p>
 
-QuickStay is a full-stack hotel booking web app with two primary experiences:
+<h1 align="center">QuickStay</h1>
 
-- Traveler flow: search rooms, filter by destination/type/price, check availability, book rooms, and pay with Stripe.
-- Hotel owner flow: register a hotel, add room listings with images, toggle room availability, and track bookings/revenue from a dashboard.
+<p align="center">
+  <strong>A full-stack hotel booking platform built with the MERN stack</strong>
+</p>
 
-The project is split into:
+<p align="center">
+  <a href="https://quick-stay-chi-two.vercel.app/">🌐 Live Demo</a> &nbsp;·&nbsp;
+  <a href="#-getting-started">🚀 Getting Started</a> &nbsp;·&nbsp;
+  <a href="#-api-reference">📡 API Reference</a>
+</p>
 
-- Frontend: React + Vite + Tailwind CSS + Clerk auth
-- Backend: Node.js + Express + MongoDB + Clerk + Stripe + Cloudinary + Nodemailer
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white" alt="Stripe" />
+  <img src="https://img.shields.io/badge/Clerk-Auth-6C47FF?logo=clerk&logoColor=white" alt="Clerk" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind" />
+</p>
 
-## Core Features
+---
 
-- User authentication with Clerk.
-- Automatic user creation/sync from Clerk webhook events.
-- Room listing and filtering by:
-	- Destination (city)
-	- Room type
-	- Price range
-	- Sort order (price low/high, newest)
-- Room details page with:
-	- Image gallery
-	- Amenities
-	- Availability check by date range
-- Booking creation with nights-based total calculation.
-- Booking confirmation email via SMTP.
-- My Bookings page with payment status and Stripe checkout.
-- Stripe webhook handling for paid bookings.
-- Hotel owner panel:
-	- Hotel registration
-	- Add room (multi-image upload to Cloudinary)
-	- Toggle room availability
-	- Dashboard metrics (total bookings and total revenue)
+## 📋 Overview
 
-## Monorepo Structure
+QuickStay provides two distinct user experiences:
+
+| 🧳 **Travelers** | 🏨 **Hotel Owners** |
+|---|---|
+| Search & filter rooms by city, type, and price | Register a hotel and manage listings |
+| Check real-time availability by date range | Upload room images to Cloudinary |
+| Book rooms with dynamic pricing | Toggle room availability instantly |
+| Pay via Stripe or at the hotel | Track bookings & revenue on a dashboard |
+| Receive email confirmations | View guest details and payment status |
+
+---
+
+## ✨ Key Features
+
+- **🔐 Auth** — Clerk-powered authentication with automatic user sync via webhooks
+- **🔍 Smart Search** — Filter by destination, room type, price range, and sort order
+- **📅 Availability Engine** — Real-time date-range overlap detection prevents double-bookings
+- **💳 Stripe Integration** — Full checkout flow with webhook-based payment verification
+- **📧 Email Notifications** — Booking confirmations sent via SMTP (Brevo)
+- **☁️ Image Hosting** — Multi-image room uploads stored on Cloudinary
+- **📊 Owner Dashboard** — Live metrics for total bookings and revenue
+- **📱 Responsive Design** — Mobile-first UI with Tailwind CSS v4
+
+---
+
+## 🏗️ Architecture
 
 ```
 hotel_booking/
-	client/      # React frontend
-	server/      # Express API backend
-	package.json # Root scripts (mostly for deployment convenience)
+├── client/                  # React + Vite frontend
+│   ├── public/              # Static assets & favicon
+│   ├── src/
+│   │   ├── assets/          # Images, icons, dummy data
+│   │   ├── components/      # Reusable UI components
+│   │   ├── context/         # Global state (AppContext)
+│   │   └── pages/           # Route pages
+│   │       └── hotelOwner/  # Owner dashboard pages
+│   └── .env                 # Client environment config
+│
+├── server/                  # Express API backend
+│   ├── configs/             # DB & Cloudinary setup
+│   ├── controllers/         # Business logic
+│   ├── middleware/           # Auth middleware
+│   ├── models/              # Mongoose schemas
+│   ├── routes/              # API route definitions
+│   └── .env                 # Server environment config
+│
+└── package.json             # Root deployment scripts
 ```
 
-## Tech Stack
+---
 
-Frontend:
+## 🛠️ Tech Stack
+
+<table>
+<tr>
+<td><strong>Frontend</strong></td>
+<td><strong>Backend</strong></td>
+<td><strong>Services</strong></td>
+</tr>
+<tr>
+<td>
 
 - React 19
-- React Router
+- React Router 7
 - Tailwind CSS v4
 - Clerk React SDK
 - Axios
 - react-hot-toast
 
-Backend:
+</td>
+<td>
 
 - Express 5
-- Mongoose
-- Clerk Express SDK
-- Stripe
-- Cloudinary
-- Multer
-- Nodemailer
-- Svix (Clerk webhook verification)
+- Mongoose 8
+- Multer 2
+- Nodemailer 7
+- Svix (webhook verification)
 
-## Environment Variables
+</td>
+<td>
 
-Create separate env files for client and server.
+- **Auth**: Clerk
+- **Payments**: Stripe
+- **Images**: Cloudinary
+- **Email**: Brevo SMTP
+- **Database**: MongoDB Atlas
+- **Hosting**: Vercel
 
-### Client env (`client/.env`)
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- MongoDB Atlas cluster (or local MongoDB)
+- Accounts on: [Clerk](https://clerk.com), [Stripe](https://stripe.com), [Cloudinary](https://cloudinary.com)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/coderMayank69/QuickStay.git
+cd QuickStay
+```
+
+### 2. Set up environment variables
+
+**`client/.env`**
 
 ```env
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
@@ -76,7 +147,7 @@ VITE_BACKEND_URL=http://localhost:3000
 VITE_CURRENCY=$
 ```
 
-### Server env (`server/.env`)
+**`server/.env`**
 
 ```env
 PORT=3000
@@ -90,7 +161,7 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# SMTP (Brevo in current config)
+# SMTP (Brevo)
 SMTP_USER=your_smtp_user
 SMTP_PASS=your_smtp_password
 SENDER_EMAIL=your_sender_email
@@ -100,145 +171,184 @@ STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
 
-## Local Development
-
-Install dependencies:
+### 3. Install dependencies
 
 ```bash
-cd client
-npm install
+# Install client dependencies
+cd client && npm install
 
-cd ../server
-npm install
+# Install server dependencies
+cd ../server && npm install
 ```
 
-Run backend:
+### 4. Run the development servers
 
 ```bash
+# Terminal 1 — Backend (port 3000)
 cd server
 npm run server
-```
 
-Run frontend (new terminal):
-
-```bash
+# Terminal 2 — Frontend (port 5173)
 cd client
 npm run dev
 ```
 
-App URLs (default):
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:3000 |
 
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3000
+---
 
-## API Overview
+## 📡 API Reference
 
-Base URL: `/api`
+> All protected routes require a Clerk Bearer token in the `Authorization` header.
 
-Auth note:
+### 👤 Users
 
-- Protected routes require Clerk Bearer token in `Authorization` header.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/user` | ✅ | Get current user profile & recent searches |
+| `POST` | `/api/user/store-recent-search` | ✅ | Save a recently searched city |
+
+### 🏨 Hotels
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/hotels` | ✅ | Register as hotel owner & create hotel |
+
+### 🛏️ Rooms
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/rooms` | ❌ | List all available rooms |
+| `POST` | `/api/rooms` | ✅ | Create room with image upload |
+| `GET` | `/api/rooms/owner` | ✅ | Get rooms for current owner |
+| `POST` | `/api/rooms/toggle-availability` | ✅ | Toggle room availability |
+
+### 📋 Bookings
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/bookings/check-availability` | ❌ | Check room availability for dates |
+| `POST` | `/api/bookings/book` | ✅ | Create a new booking |
+| `GET` | `/api/bookings/user` | ✅ | Get current user's bookings |
+| `GET` | `/api/bookings/hotel` | ✅ | Get owner's bookings & dashboard data |
+| `POST` | `/api/bookings/stripe-payment` | ✅ | Create Stripe checkout session |
+| `POST` | `/api/bookings/verify-payment` | ✅ | Verify payment & update booking |
+
+### 🔗 Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/clerk` | Clerk user lifecycle events |
+| `POST` | `/stripe` | Stripe payment events |
+
+---
+
+## 💳 Booking & Payment Flow
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│  Select Room │────▶│  Check Dates │────▶│ Create      │
+│  & Dates     │     │  Availability│     │ Booking     │
+└─────────────┘     └──────────────┘     └──────┬──────┘
+                                                │
+                    ┌──────────────────────────┐ │
+                    │                          ▼ │
+              ┌─────┴──────┐          ┌─────────────────┐
+              │ Pay at Hotel│          │ Stripe Checkout  │
+              │ (isPaid:    │          │ Session Created  │
+              │  false)     │          └────────┬────────┘
+              └────────────┘                   │
+                                               ▼
+                                    ┌─────────────────┐
+                                    │ Webhook confirms │
+                                    │ payment & updates│
+                                    │ booking status   │
+                                    └────────┬────────┘
+                                             │
+                                             ▼
+                                    ┌─────────────────┐
+                                    │ Email confirm    │
+                                    │ sent to guest    │
+                                    └─────────────────┘
+```
+
+---
+
+## 📦 Data Models
 
 ### User
-
-- `GET /user` - Get current user role and recent searched cities (protected)
-- `POST /user/store-recent-search` - Save a recent destination city (protected)
-
-### Hotels
-
-- `POST /hotels` - Register current user as hotel owner and create hotel profile (protected)
-
-### Rooms
-
-- `GET /rooms` - Get all available rooms
-- `POST /rooms` - Create room with image upload (protected, owner)
-- `GET /rooms/owner` - Get rooms for current owner (protected)
-- `POST /rooms/toggle-availability` - Toggle room availability (protected)
-
-### Bookings
-
-- `POST /bookings/check-availability` - Check room availability for date range
-- `POST /bookings/book` - Create booking (protected)
-- `GET /bookings/user` - Get current user bookings (protected)
-- `GET /bookings/hotel` - Get owner dashboard bookings and metrics (protected)
-- `POST /bookings/stripe-payment` - Create Stripe checkout session (protected)
-- `POST /bookings/verify-payment` - Verify Stripe payment and update booking status
-
-### Webhooks
-
-- `POST /clerk` - Clerk user lifecycle webhook
-- `POST /stripe` - Stripe webhook event handler
-
-## Data Models
-
-### User
-
-- `_id` (Clerk user id)
-- `username`, `email`, `image`
-- `role`: `user` or `hotelOwner`
-- `recentSearchedCities` (up to last 3 maintained by API logic)
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | String | Clerk user ID |
+| `username` | String | Display name |
+| `email` | String | User email |
+| `image` | String | Profile image URL |
+| `role` | Enum | `user` \| `hotelOwner` |
+| `recentSearchedCities` | [String] | Last 3 searched cities |
 
 ### Hotel
-
-- `name`, `address`, `contact`, `city`
-- `owner` (User ref)
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | String | Hotel name |
+| `address` | String | Full address |
+| `contact` | String | Phone number |
+| `city` | String | City location |
+| `owner` | Ref → User | Hotel owner |
 
 ### Room
-
-- `hotel` (Hotel ref)
-- `roomType`, `pricePerNight`, `amenities`
-- `images[]`
-- `isAvailable`
+| Field | Type | Description |
+|-------|------|-------------|
+| `hotel` | Ref → Hotel | Parent hotel |
+| `roomType` | String | e.g., Single Bed, Double Bed |
+| `pricePerNight` | Number | Nightly rate |
+| `amenities` | [String] | e.g., Free Wi-Fi, Pool Access |
+| `images` | [String] | Cloudinary URLs |
+| `isAvailable` | Boolean | Availability toggle |
 
 ### Booking
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | Ref → User | Guest |
+| `room` | Ref → Room | Booked room |
+| `hotel` | Ref → Hotel | Associated hotel |
+| `checkInDate` | Date | Check-in date |
+| `checkOutDate` | Date | Check-out date |
+| `totalPrice` | Number | Calculated total |
+| `guests` | Number | Guest count |
+| `status` | Enum | `pending` \| `confirmed` \| `cancelled` |
+| `paymentMethod` | String | Stripe \| Pay At Hotel |
+| `isPaid` | Boolean | Payment status |
 
-- `user`, `room`, `hotel`
-- `checkInDate`, `checkOutDate`, `guests`
-- `totalPrice`
-- `status`: `pending | confirmed | cancelled`
-- `paymentMethod`
-- `isPaid`
+---
 
-## Booking and Payment Flow
+## 🚢 Deployment
 
-1. User selects room and dates.
-2. Frontend calls availability API.
-3. If available, frontend creates booking (`pay at hotel` initially).
-4. User can open Stripe checkout from My Bookings.
-5. Stripe webhook (and optional verify endpoint) updates booking to paid.
-6. Owner dashboard reflects updated revenue and payment status.
+The project is configured for **Vercel** with separate deployments for frontend and backend:
 
-## Deployment Notes
+1. **Frontend** — Deploy the `client/` directory as a Vite static site
+2. **Backend** — Deploy the `server/` directory as a Node.js serverless function
 
-This repo includes Vercel config files:
+Set `VITE_BACKEND_URL` in the client's Vercel environment to point to the deployed backend URL.
 
-- Root `vercel.json` for frontend static build routing
-- `client/vercel.json` for SPA rewrite handling
-- `server/vercel.json` for Node API deployment
+---
 
-Typical production setup is deploying frontend and backend as separate Vercel projects, then setting `VITE_BACKEND_URL` to the deployed backend URL.
+## 📜 Available Scripts
 
-## Current Scripts
+| Location | Script | Command |
+|----------|--------|---------|
+| Root | Start backend | `npm run start` |
+| Client | Dev server | `npm run dev` |
+| Client | Production build | `npm run build` |
+| Client | Preview build | `npm run preview` |
+| Client | Lint | `npm run lint` |
+| Server | Dev (nodemon) | `npm run server` |
+| Server | Production | `npm run start` |
 
-Root:
+---
 
-- `npm run start` -> starts backend (`node server/server.js`)
-
-Client:
-
-- `npm run dev`
-- `npm run build`
-- `npm run preview`
-- `npm run lint`
-
-Server:
-
-- `npm run server` (nodemon)
-- `npm run start`
-
-## Notes
-
-- The frontend currently includes some static marketing sections and dummy asset data for presentation.
-- Owner access is role-driven (`hotelOwner`) and assigned after hotel registration.
-- Room image uploads are stored in Cloudinary; database stores secure URLs.
-
+<p align="center">
+  Built with ❤️ by <a href="https://github.com/coderMayank69">Mayank Singh</a>
+</p>
