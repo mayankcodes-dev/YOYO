@@ -11,10 +11,15 @@ export const getUserData = async (req, res) =>{
 }
   
 // store user recent searched cities
-export const storeRecentSearchedCities = async (req, res, next)=>{
+export const storeRecentSearchedCities = async (req, res)=>{
     try{
         const {recentSearchedCity} = req.body;
-        const user =  await req.user;
+        const user = req.user;
+
+        // Prevent duplicate cities
+        if (user.recentSearchedCities.includes(recentSearchedCity)) {
+            return res.json({success: true, message: "City already in recent searches"})
+        }
 
         if(user.recentSearchedCities.length < 3){
             user.recentSearchedCities.push(recentSearchedCity)

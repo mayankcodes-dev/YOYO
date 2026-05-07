@@ -4,7 +4,7 @@ import React from 'react'
 import toast from 'react-hot-toast';
 
 const Loader = () => {
-    const { navigate, axios, getToken } = useAppContext();
+    const { navigate, axios, getToken, user } = useAppContext();
     const { nextUrl } = useParams();
 
     const verifyPayment = async (bookingId) => {
@@ -23,6 +23,8 @@ const Loader = () => {
     };
 
     React.useEffect(() => {
+        if (!user) return;
+        
         const bookingId = localStorage.getItem('pendingBookingId');
         
         const handleRedirect = async () => {
@@ -38,7 +40,7 @@ const Loader = () => {
         };
         
         handleRedirect();
-    }, [nextUrl]);
+    }, [nextUrl, user]);
 
     return (
         <div className='flex justify-center items-center h-screen'>

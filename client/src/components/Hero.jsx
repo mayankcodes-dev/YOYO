@@ -11,19 +11,26 @@ const Hero = () => {
     const onSearch = async(e) =>{
         e.preventDefault();
         navigate('/rooms?destination='+destination);
-        //call api to save searched city
-        await axios.post('/api/user/store-recent-search',{recentSearchedCity: destination},
-           {headers:{Authorization: `Bearer ${await getToken()}`}} 
-        )
+        //call api to save searched city (only if user is logged in)
+        try {
+          const token = await getToken();
+          if (token) {
+            await axios.post('/api/user/store-recent-search',{recentSearchedCity: destination},
+               {headers:{Authorization: `Bearer ${token}`}} 
+            )
 
-        //add destination to searched cities  max 3 recent searached cities
-        setSearchedCities((prevSearchedCities)=>{
-            const updatedCities = [ ...prevSearchedCities,destination];
-            if(updatedCities.length > 3){
-                updatedCities.shift();
-            }
-            return updatedCities;
-        })
+            //add destination to searched cities  max 3 recent searached cities
+            setSearchedCities((prevSearchedCities)=>{
+                const updatedCities = [ ...prevSearchedCities,destination];
+                if(updatedCities.length > 3){
+                    updatedCities.shift();
+                }
+                return updatedCities;
+            })
+          }
+        } catch (error) {
+          // Silently ignore search save errors for unauthenticated users
+        }
     }
   return (
     <div className='flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 xl:px-32 text-white
@@ -41,7 +48,7 @@ const Hero = () => {
                     <label htmlFor="destinationInput">Destination</label>
                 </div>
                 <input onChange={e => setDestination(e.target.value)} value={destination} list='destinations' id="destinationInput" type="text" className=" rounded border border-gray-200 px-3 py-1.5 mt-1.5 text-sm outline-none" placeholder="Type here" required />
-                <datalist id='destination'>
+                <datalist id='destinations'>
                   {cities.map((city, index) => (
                     <option key={index} value={city} />
                   ))}

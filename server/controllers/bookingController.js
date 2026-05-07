@@ -27,7 +27,7 @@ export const checkAvailibilityAPI = async (req, res) =>{
         const isAvailable = await checkAvailibility({room, checkInDate, checkOutDate});
         res.json({ success: true, isAvailable });
     } catch (error) {
-        res.json({ success: true, message: error.message });      
+        res.json({ success: false, message: error.message });      
     }
 }
 
@@ -106,7 +106,7 @@ export const createBooking = async (req, res)=>{
 export const getUserBookings = async (req, res)=>{
     try {
         const user = req.user._id;
-        const bookings = await Booking.find({user}).populate('room hotel').sort({createAt: -1});
+        const bookings = await Booking.find({user}).populate('room hotel').sort({createdAt: -1});
         res.json({success: true, bookings});
     } catch (error) {
         res.json({success: false, message: error.message});

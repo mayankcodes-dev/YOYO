@@ -37,7 +37,6 @@ const Navbar = () => {
         } else {
             setIsScrolled(false);
         }
-        setIsScrolled(prev => location.pathname !== '/' ? true : prev);
 
 
         const handleScroll = () => {
@@ -89,7 +88,7 @@ const Navbar = () => {
                     (<UserButton>
                         <UserButton.MenuItems>
                             <UserButton.Action label='My Bookings' labelIcon={<BookIcon />} onClick={() =>
-                                navigate('/My-Bookings')} />
+                                navigate('/my-bookings')} />
                         </UserButton.MenuItems>
 
                     </UserButton>)
@@ -109,7 +108,7 @@ const Navbar = () => {
                 {user && <UserButton>
                     <UserButton.MenuItems>
                         <UserButton.Action label='My Bookings' labelIcon={<BookIcon />} onClick={() =>
-                            navigate('/My-Bookings')} />
+                            navigate('/my-bookings')} />
                     </UserButton.MenuItems>
 
                 </UserButton>}

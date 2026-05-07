@@ -72,6 +72,9 @@ export const toggleRoomAvailability = async (req, res)=>{
     try {
         const { roomId } = req.body;
         const roomData = await Room.findById(roomId);
+        if (!roomData) {
+            return res.json({success: false, message: 'Room not found'});
+        }
         roomData.isAvailable = !roomData.isAvailable;
         await roomData.save();
         res.json({success: true, message: 'Room availability updated successfully'});
