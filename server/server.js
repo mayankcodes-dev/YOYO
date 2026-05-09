@@ -45,6 +45,18 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
+// Ensure DB is connected before any API route runs.
+// On Vercel serverless, requests can arrive before startServer() finishes.
+// connectDB() is cached (global), so this is a no-op on warm invocations.
+app.use('/api', async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        res.status(503).json({ success: false, message: 'Database connection failed' });
+    }
+});
+
 app.use('/api/user', userRouter);
 app.use('/api/hotels', hotelRouter);
 app.use('/api/rooms', roomRouter);
