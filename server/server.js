@@ -1,78 +1,115 @@
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
-import connectDB from './configs/db.js';
+import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
+import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
-import { clerkMiddleware } from '@clerk/express'
-import clerkWebhooks from './controllers/clerkWebhooks.js';
-import userRouter from './routes/userRoutes.js';
-import hotelRouter from './routes/hotelRoutes.js';
-import roomRouter from './routes/roomRoutes.js';
+import connectDB from './configs/db.js';
 import connectCloudinary from './configs/cloudinary.js';
-import bookingRouter from './routes/bookingRoutes.js';
 import { stripeWebhooks } from './controllers/stripeWebhooks.js';
+import authRouter    from './routes/authRoutes.js';
+import userRouter    from './routes/userRoutes.js';
+import hotelRouter   from './routes/hotelRoutes.js';
+import roomRouter    from './routes/roomRoutes.js';
+import bookingRouter from './routes/bookingRoutes.js';
 
 const app = express();
 
 connectCloudinary();
 
-app.use(cors({ origin: true, credentials: true }));
+// ═══════════════════════════════════════════════════════════
+// SECURITY LAYER — applied before all routes
+// ═══════════════════════════════════════════════════════════
 
-// Webhook routes (must be before express.json())
+// 1. Helmet: sets 14+ security HTTP headers (X-Content-Type, CSP, HSTS, etc.)
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow Cloudinary images
+    contentSecurityPolicy: false, // disabled — we use a React SPA served separately
+}));
+
+// 2. CORS — restrict to known origins
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
+app.use(cors({
+    origin: (origin, cb) => {
+        if (!origin || allowedOrigins.some(o => origin.startsWith(o.trim()))) cb(null, true);
+        else cb(new Error('CORS: Origin not allowed'));
+    },
+    credentials: true,
+}));
+
+// 3. Global rate limiter — 200 req / 15 min per IP
+app.use('/api', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Rate limit exceeded. Please slow down.' },
+}));
+
+// 4. Stripe webhook — must receive RAW body before json() middleware
 app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
-app.post('/api/clerk', express.json({ type: 'application/json' }), clerkWebhooks);
 
-// Middlewares
-app.use(express.json());
-app.use(clerkMiddleware());
+// 5. Body parsing with size limit (prevents DoS via huge payloads)
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// Routes
-app.get('/', (req, res) => res.send('API is working...'));
+// 6. NoSQL Injection prevention — strips $ and . from req.body / query / params
+app.use(mongoSanitize({
+    replaceWith: '_', // replace operators instead of stripping completely (helps debug)
+}));
 
-// Health check endpoint — use this URL in UptimeRobot to keep the server warm
-app.get('/api/health', async (req, res) => {
-    try {
-        const dbState = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-        const mongoStatus = dbState[mongoose.connection.readyState] || 'unknown';
-        res.json({
-            status: 'ok',
-            db: mongoStatus,
-            uptime: Math.floor(process.uptime()) + 's',
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(503).json({ status: 'error', message: error.message });
-    }
+// 7. HTTP Parameter Pollution prevention
+app.use(hpp({
+    whitelist: ['sort', 'filter', 'city', 'category', 'amenities'], // allow array params for filtering
+}));
+
+// ═══════════════════════════════════════════════════════════
+// HEALTH CHECK
+// ═══════════════════════════════════════════════════════════
+app.get('/api/health', async (_req, res) => {
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    res.json({
+        status: 'ok',
+        db: states[mongoose.connection.readyState],
+        uptime: Math.floor(process.uptime()) + 's',
+        timestamp: new Date().toISOString(),
+    });
 });
 
-// Ensure DB is connected before any API route runs.
-// On Vercel serverless, requests can arrive before startServer() finishes.
-// connectDB() is cached (global), so this is a no-op on warm invocations.
-app.use('/api', async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (error) {
-        res.status(503).json({ success: false, message: 'Database connection failed' });
-    }
+// ═══════════════════════════════════════════════════════════
+// DATABASE — ensure connected before any /api route
+// ═══════════════════════════════════════════════════════════
+app.use('/api', async (_req, res, next) => {
+    try { await connectDB(); next(); }
+    catch { res.status(503).json({ success: false, message: 'Database temporarily unavailable' }); }
 });
 
-app.use('/api/user', userRouter);
-app.use('/api/hotels', hotelRouter);
-app.use('/api/rooms', roomRouter);
+// ═══════════════════════════════════════════════════════════
+// API ROUTES
+// ═══════════════════════════════════════════════════════════
+app.use('/api/auth',     authRouter);
+app.use('/api/user',     userRouter);
+app.use('/api/hotels',   hotelRouter);
+app.use('/api/rooms',    roomRouter);
 app.use('/api/bookings', bookingRouter);
 
+// 404
+app.use((_req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
+
+// Global error handler — never leaks stack traces
+app.use((err, _req, res, _next) => {
+    console.error('[ERROR]', err.message);
+    res.status(err.status || 500).json({ success: false, message: err.message || 'Internal server error' });
+});
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 3000;
-
-const startServer = async () => {
-    try {
-        await connectDB();
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    } catch (error) {
-        process.exit(1);
-    }
-};
-
-startServer();
+connectDB()
+    .then(() => app.listen(PORT, () => console.log(`🚀 YoYo server on port ${PORT}`)))
+    .catch(() => process.exit(1));
 
 export default app;

@@ -1,103 +1,129 @@
-import React from 'react'
-import Title from '../../components/Title'
-import { assets} from '../../assets/assets'
+import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+
+const StatCard = ({ icon, label, value, color }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex items-center gap-4 p-5 rounded-2xl border"
+    style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)", boxShadow: "var(--shadow-sm)" }}
+  >
+    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+      style={{ background: color + "18" }}>
+      {icon}
+    </div>
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+      <p className="text-2xl font-extrabold font-display" style={{ color }}>{value}</p>
+    </div>
+  </motion.div>
+);
 
 const Dashboard = () => {
+  const { currency, axios, getToken, user } = useAppContext();
+  const [data, setData] = React.useState({ totalBookings: 0, totalRevenue: 0, bookings: [] });
+  const [loading, setLoading] = React.useState(true);
 
-  const { currency, axios, getToken, user} = useAppContext();
-
-  const [dashboardData, setDashboardData] = React.useState({
-    totalBookings: 0,
-    totalRevenue: 0,
-    bookings: [],
-  })
-
-  const fetchDashboardData = async ()=>{
-    try {
-      const { data } = await axios.get('/api/bookings/hotel', {headers:
-        {Authorization: `Bearer ${await getToken()}`}})
-        if (data.success) {
-          setDashboardData(data.dashboardData)
-        } else {
-          toast.error(data.message);
-        }
-    } catch (error) {
-          toast.error(error.message);
-      
-    }
-  }
-  React.useEffect(()=>{
-    user && fetchDashboardData();
-  },[user])
+  React.useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { data: res } = await axios.get('/api/bookings/hotel', {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        });
+        if (res.success) setData(res.dashboardData);
+        else toast.error(res.message);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [user]);
 
   return (
-    <div>
-      <Title align='left' font='outfit' title='Dashboard' 
-      subTitle='Monitor your room listings, track bookings and analyze revenue-all in one place.
-      Stay updated with real-time insights to ensure smooth operations.'/>
-
-      <div className='flex gap-4 my-8'>
-        {/* -----------Total Bookings ----------------- */}
-        <div className='bg-primary/3 border border-primary/10 rounded flex p-4 pr-8'>
-            <img src={assets.totalBookingIcon} alt="" className='max-sm:hidden h-10'/>
-            <div className='flex flex-col sm:ml-4 font-medium'>
-              <p className='text-blue-500 text-lg'>Total Bookings</p>
-              <p className='text-neutral-400 text-base'>{dashboardData.totalBookings}</p>
-            </div>
-        </div>
-        {/* -----------Total Revenue ----------------- */}
-        <div className='bg-primary/3 border border-primary/10 rounded flex p-4 pr-8'>
-            <img src={assets.totalRevenueIcon} alt="" className='max-sm:hidden h-10'/>
-            <div className='flex flex-col sm:ml-4 font-medium'>
-              <p className='text-blue-500 text-lg'>Total Revenue</p>
-              <p className='text-neutral-400 text-base'>{currency} {dashboardData.totalRevenue}</p>
-            </div>
-        </div>
+    <div className="p-1">
+      {/* Header */}
+      <div className="mb-8">
+        <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#E8003D" }}>Overview</p>
+        <h1 className="font-display text-2xl md:text-3xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+          Dashboard
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+          Monitor your rooms, track bookings and analyse revenue — all in one place.
+        </p>
       </div>
 
-       {/* -----------Recent BOOkings ----------------- */}
- 
-      <h2 className='text-xl text-blue-950/70 font-medium mb-5'>Recent Bookings</h2>
-          <div className='w-full max-w-3xl text-left border border-gray-300 rounded-lg max-h-80 overflow-y-scroll'>
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                  <tr>
-                    <th className='py-3 px-4 text-gray-800 font-medium'>User Name</th>
-                    <th className='py-3 px-4 text-gray-800 font-medium max-sm:hidden'>Room Name</th>
-                    <th className='py-3 px-4 text-gray-800 font-medium text-center'>Total Amount</th>
-                    <th className='py-3 px-4 text-gray-800 font-medium text-center'>Payment Status</th>
-                  </tr>
-              </thead>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+        <StatCard icon="📅" label="Total Bookings" value={data.totalBookings} color="#E8003D" />
+        <StatCard icon="💰" label="Total Revenue" value={`${currency}${data.totalRevenue.toLocaleString('en-IN')}`} color="#10B981" />
+      </div>
 
-              <tbody className='text-sm'>
-              {dashboardData.bookings.map((item, index) => (
-                <tr key={index} >
-                  <td className='py-3 px-4 text-gray-700  border-t border-gray-300'>
-                    {item.user.username}
-                  </td>
-
-                  <td className='py-3 px-4 text-gray-700  border-t border-gray-300 max-sm:hidden'>
-                    {item.room.roomType}
-                  </td>
-
-                  <td className='py-3 px-4 text-gray-700  border-t border-gray-300 text-center'>
-                    {currency}{item.totalPrice}
-                  </td>
-
-                  <td className='py-3 px-4 border-t border-gray-300 flex'>
-                      <button className={`py-1 px-3 text-xs rounded-full mx-auto ${item.isPaid ? 'bg-green-200 text-green-600' : 'bg-yellow-200 text-yellow-600'}`}>
-                        {item.isPaid ? 'Completed' : 'Pending'}
-                      </button>
-                  </td>
+      {/* Recent bookings table */}
+      <div>
+        <h2 className="text-base font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>Recent Bookings</h2>
+        <div
+          className="rounded-2xl overflow-hidden border"
+          style={{ borderColor: "var(--color-border)", boxShadow: "var(--shadow-sm)" }}
+        >
+          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: "var(--color-surface-3)" }}>
+                  {["Guest", "Room", "Amount", "Status"].map(h => (
+                    <th key={h} className="py-3 px-4 text-left text-xs font-bold uppercase tracking-wider"
+                      style={{ color: "var(--color-text-muted)" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
+              </thead>
+              <tbody>
+                {loading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 4 }).map((_, j) => (
+                          <td key={j} className="py-3 px-4">
+                            <div className="skeleton h-4 w-24 rounded" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  : data.bookings.length === 0
+                    ? <tr><td colSpan={4} className="py-10 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>No bookings yet</td></tr>
+                    : data.bookings.map((item, i) => (
+                        <tr key={i} className="border-t" style={{ borderColor: "var(--color-border)" }}>
+                          <td className="py-3 px-4 font-medium" style={{ color: "var(--color-text-primary)" }}>
+                            {item.user?.username || '—'}
+                          </td>
+                          <td className="py-3 px-4" style={{ color: "var(--color-text-secondary)" }}>
+                            {item.room?.roomType}
+                          </td>
+                          <td className="py-3 px-4 font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                            {currency}{item.totalPrice?.toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                              style={item.isPaid
+                                ? { background: "rgba(16,185,129,0.12)", color: "#10B981" }
+                                : { background: "rgba(245,158,11,0.12)", color: "#F59E0B" }
+                              }
+                            >
+                              {item.isPaid ? 'Paid' : 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                }
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

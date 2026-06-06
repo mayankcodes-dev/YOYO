@@ -1,146 +1,235 @@
-import React, { useEffect, useState } from 'react';
-import { assets } from '../assets/assets';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useClerk, useUser, UserButton } from '@clerk/clerk-react';
-import { useAppContext } from '../context/AppContext';
+import React, { useState, useRef, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAppContext } from "../context/AppContext";
+import { motion, AnimatePresence } from "framer-motion";
 
+// ─── YoYo logo pill ───────────────────────────────────────────
+const YoYoLogo = () => (
+  <div style={{
+    background: "#E8003D",
+    borderRadius: "8px",
+    padding: "3px 12px 4px",
+    boxShadow: "0 2px 12px rgba(232,0,61,0.45)",
+    lineHeight: 1,
+  }}>
+    <span style={{
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontWeight: 900,
+      fontSize: "19px",
+      color: "#fff",
+      letterSpacing: "-0.04em",
+    }}>YoYo</span>
+  </div>
+);
 
-const BookIcon = () => (
-    <svg className="w-4 h-4 text-gray-700" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" >
-        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 19V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v13H7a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h12M9 3v14m7 0v4" />
-    </svg>
-)
+// ─── Sun / Moon toggle ────────────────────────────────────────
+const DarkToggle = ({ darkMode, toggleDarkMode }) => (
+  <button
+    onClick={toggleDarkMode}
+    aria-label="Toggle theme"
+    className="flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-110"
+    style={{ color: darkMode ? '#FBBF24' : '#6B7280' }}
+  >
+    {darkMode ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="5"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+    )}
+  </button>
+);
 
+// ─── Avatar dropdown ──────────────────────────────────────────
+const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const initial = user?.username?.[0]?.toUpperCase() || '?';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm text-white transition hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg,#E8003D,#9B001F)' }}
+      >
+        {user.image
+          ? <img src={user.image} alt={user.username} className="w-8 h-8 rounded-full object-cover" />
+          : initial}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-10 w-52 rounded-2xl overflow-hidden shadow-2xl z-50"
+            style={{
+              background: 'rgba(18,18,28,0.96)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            {/* User info */}
+            <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-sm font-semibold text-white truncate">{user.username}</p>
+              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.40)' }}>{user.email}</p>
+            </div>
+
+            <div className="py-1.5">
+              <MenuItem onClick={() => { navigate('/my-bookings'); setOpen(false); }}>My Bookings</MenuItem>
+              <MenuItem onClick={() => {
+                setOpen(false);
+                isOwner ? navigate('/owner') : setShowHotelReg(true);
+              }}>
+                {isOwner ? 'Owner Dashboard' : 'List My Property'}
+              </MenuItem>
+              <div className="mx-3 my-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+              <MenuItem onClick={() => { logout(); setOpen(false); }} danger>Sign Out</MenuItem>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const MenuItem = ({ onClick, children, danger }) => (
+  <button
+    onClick={onClick}
+    className="w-full text-left px-4 py-2 text-sm font-medium transition-colors hover:bg-white/5"
+    style={{ color: danger ? '#F87171' : 'rgba(255,255,255,0.70)' }}
+  >
+    {children}
+  </button>
+);
+
+// ─── Nav link ─────────────────────────────────────────────────
+const NavLink = ({ to, children, active }) => (
+  <Link
+    to={to}
+    className="relative px-3 py-1 text-sm font-semibold transition-colors duration-150"
+    style={{ color: active ? '#ffffff' : 'rgba(255,255,255,0.55)' }}
+  >
+    {children}
+    {active && (
+      <motion.span
+        layoutId="nav-pill"
+        className="absolute inset-0 rounded-full -z-10"
+        style={{ background: 'rgba(255,255,255,0.10)' }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      />
+    )}
+  </Link>
+);
+
+// ─── MAIN NAVBAR ──────────────────────────────────────────────
 const Navbar = () => {
-    const navLinks = [
-        { name: 'Home', path: '/' },
-        { name: 'Hotel', path: '/' },
-        { name: 'Experience', path: '/' },
-        { name: 'About', path: '/' },
-    ];
+  const location = useLocation();
+  const { user, darkMode, toggleDarkMode, logout, navigate, isOwner, setShowHotelReg } = useAppContext();
+  const isActive = p => p === '/' ? location.pathname === '/' : location.pathname.startsWith(p);
 
-    const [isScrolled, setIsScrolled] = useState(false);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { openSignIn } = useClerk();
-    const location = useLocation();
+  const links = [
+    { name: 'Home',        path: '/' },
+    { name: 'Hotels',      path: '/rooms' },
+    { name: 'My Bookings', path: '/my-bookings' },
+  ];
 
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center" style={{ paddingTop: '12px' }}>
+      {/* ── Floating pill ──────────────────────────────────── */}
+      <motion.nav
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="flex items-center gap-2 px-4"
+        style={{
+          height: '48px',
+          borderRadius: '40px',
+          background: 'rgba(14, 14, 22, 0.72)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.40), 0 0 0 0.5px rgba(255,255,255,0.06) inset',
+          maxWidth: '820px',
+          width: 'calc(100% - 48px)',
+        }}
+      >
+        {/* Logo */}
+        <Link to="/" className="flex-shrink-0 mr-2">
+          <YoYoLogo />
+        </Link>
 
-    const { user, navigate, isOwner, setShowHotelReg } = useAppContext();
+        {/* Nav links — hidden on mobile */}
+        <div className="hidden sm:flex items-center gap-0.5 flex-1">
+          {links.map(l => (
+            <NavLink key={l.path} to={l.path} active={isActive(l.path)}>{l.name}</NavLink>
+          ))}
+        </div>
 
+        {/* Right side */}
+        <div className="flex items-center gap-2 ml-auto">
+          <DarkToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
-
-    useEffect(() => {
-        //to handle navbar background on scroll and on route change
-        if (location.pathname !== '/') {
-            setIsScrolled(true);
-            return;
-        } else {
-            setIsScrolled(false);
-        }
-
-
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
-        };
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, [location.pathname]);
-
-    return (
-        <nav className={`fixed top-0 left-0 w-full flex items-center justify-between px-4 md:px-16 lg:px-24 xl:px-32 transition-all duration-500 z-50 ${isScrolled ? "bg-white/80 shadow-md text-gray-700 backdrop-blur-lg py-3 md:py-4" : "py-4 md:py-6"}`}>
-
-            {/* Logo */}
-            <Link to='/'>
-                <img
-                    src={assets.logo}
-                    alt="logo"
-                    className={`h-9 ${isScrolled ? "invert opacity-80" : ""}`}
-                />
+          {user ? (
+            <AvatarMenu
+              user={user}
+              logout={logout}
+              navigate={navigate}
+              isOwner={isOwner}
+              setShowHotelReg={setShowHotelReg}
+            />
+          ) : (
+            <Link
+              to="/login"
+              className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg,#E8003D 0%,#B5002E 100%)',
+                boxShadow: '0 2px 12px rgba(232,0,61,0.35)',
+              }}
+            >
+              Sign In
             </Link>
+          )}
+        </div>
+      </motion.nav>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-4 lg:gap-8">
-                {navLinks.map((link, i) => (
-                    <a key={i} href={link.path} className={`group flex flex-col gap-0.5 ${isScrolled ? "text-gray-700" : "text-white"}`}>
-                        {link.name}
-                        <div className={`${isScrolled ? "bg-gray-700" : "bg-white"} h-0.5 w-0 group-hover:w-full transition-all duration-300`} />
-                    </a>
-                ))}
-                {user && (
-                    <button className={`border px-4 py-1 text-sm font-light 
-                        rounded-full cursor-pointer ${isScrolled ? 'text-black' : 'text-white'} 
-                        transition-all`} onClick={() => isOwner ? navigate
-                            ('/owner') : setShowHotelReg(true)}>
-                        {isOwner ? 'Dashboard' : 'Register Your Hotel'}
-                    </button>
-                )
-                }
-            </div>
-
-            {/* Desktop Right */}
-            <div className="hidden md:flex items-center gap-4">
-                <svg className={`h-6 w-6 text-white transition-all duration-500 ${isScrolled ? "invert" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-
-                {user ?
-                    (<UserButton>
-                        <UserButton.MenuItems>
-                            <UserButton.Action label='My Bookings' labelIcon={<BookIcon />} onClick={() =>
-                                navigate('/my-bookings')} />
-                        </UserButton.MenuItems>
-
-                    </UserButton>)
-                    :
-                    (
-                        <button onClick={openSignIn} className={`px-8 py-2.5 rounded-full ml-4 transition-all duration-500 ${isScrolled ? "text-white bg-black" : "bg-white text-black"}`}>
-                            Login
-                        </button>
-                    )
-                }
-            </div>
-
-            {/* Mobile Menu Button */}
-
-            <div className="flex items-center gap-3 md:hidden">
-
-                {user && <UserButton>
-                    <UserButton.MenuItems>
-                        <UserButton.Action label='My Bookings' labelIcon={<BookIcon />} onClick={() =>
-                            navigate('/my-bookings')} />
-                    </UserButton.MenuItems>
-
-                </UserButton>}
-                <img onClick={() => setIsMenuOpen(!isMenuOpen)} src={assets.menuIcon} alt="" className={`${isScrolled && "invert"} h-4`} />
-            </div>
-
-            {/* Mobile Menu */}
-            <div className={`fixed top-0 left-0 w-full h-screen bg-white text-base flex flex-col md:hidden items-center justify-center gap-6 font-medium text-gray-800 transition-all duration-500 ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
-                <button className="absolute top-4 right-4" onClick={() => setIsMenuOpen(false)}>
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                </button>
-
-                {navLinks.map((link, i) => (
-                    <a key={i} href={link.path} onClick={() => setIsMenuOpen(false)}>
-                        {link.name}
-                    </a>
-                ))}
-
-                {user && <button className="border px-4 py-1 text-sm font-light rounded-full cursor-pointer transition-all" onClick={() => isOwner ? navigate
-                    ('/owner') : setShowHotelReg(true)}>
-                    {isOwner ? 'Dashboard' : 'Register Your Hotel'}
-                </button>}
-
-                {!user && <button onClick={openSignIn} className="bg-black text-white px-8 py-2.5 rounded-full transition-all duration-500">
-                    Login
-                </button>}
-            </div>
-        </nav>
-    );
-}
+      {/* Mobile bottom nav bar */}
+      <div className="sm:hidden fixed bottom-4 left-4 right-4 z-50">
+        <div className="flex items-center justify-around py-3 px-4 rounded-2xl"
+          style={{
+            background: 'rgba(14,14,22,0.85)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }}>
+          {links.map(l => (
+            <Link
+              key={l.path}
+              to={l.path}
+              className="flex flex-col items-center gap-0.5 text-xs font-semibold transition-colors"
+              style={{ color: isActive(l.path) ? '#E8003D' : 'rgba(255,255,255,0.45)' }}
+            >
+              <span>{l.name}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Navbar;

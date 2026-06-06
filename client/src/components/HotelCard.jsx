@@ -1,39 +1,115 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { assets } from '../assets/assets'
+import { motion } from "framer-motion";
+import { useAppContext } from "../context/AppContext";
+import StarRating from "./StarRating";
+import { optimiseImage } from "../utils/cloudinary";
 
 const HotelCard = ({ room, index }) => {
+  const { currency, navigate } = useAppContext();
+  const isBestSeller = index % 3 === 0;
+  // Auto-optimise: if already on Cloudinary add f_auto,q_auto,w_600; else use as-is
+  const imgSrc = optimiseImage(room.images?.[0], 600);
+
+
   return (
-    <Link to={'/rooms/' + room._id} onClick={() => scrollTo(0, 0)} key={room._id} className='relative max-w-70
-      w-full rounded-xl overflow-hidden bg-white text-gray-500/90 
-      shadow-[0px_4px_4px_rgba(0,0,0,0.05)]'>
-      <img src={room.images[0]} alt={room.name} className=''/>
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.45, delay: (index % 4) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -4, transition: { duration: 0.25, ease: [0.34, 1.56, 0.64, 1] } }}
+      className="rounded-2xl overflow-hidden cursor-pointer flex flex-col"
+      style={{
+        background: "var(--color-surface-2)",
+        boxShadow: "var(--shadow-md)",
+        transition: "box-shadow 0.25s ease",
+      }}
+      onClick={() => { navigate(`/rooms/${room._id}`); window.scrollTo(0, 0); }}
+    >
+      {/* Image */}
+      <div className="relative h-52 overflow-hidden">
+        <img
+          src={imgSrc}
+          alt={`${room.hotel?.name} — ${room.roomType}`}
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          loading="lazy"
+        />
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {isBestSeller && (
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+              style={{ background: "var(--color-primary)" }}>
+              🏆 Best Seller
+            </span>
+          )}
+          {room.category && (
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold text-white backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.55)" }}>
+              {room.category}
+            </span>
+          )}
+        </div>
+        {/* Heart / Wishlist */}
+        <button
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-transform duration-200 hover:scale-110"
+          style={{ background: "rgba(255,255,255,0.85)" }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Save to wishlist"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" className="w-4 h-4">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
+        </button>
+      </div>
 
-      { index % 2 === 0 && <p className='px-3 py-1 absolute top-3 left-3 text-xs bg-white text-gray-800 font-medium rounded-full'>
-        Best Seller
-        </p>}
-
-      <div className='p-4 pt-5'>
-
-        <div className='flex items-center justify-between'>
-          <p className='font-playfair text-xl font-medium text-gray-800'>{room.hotel.name}</p>
-          <div className='flex items-center gap-1'>
-            <img src={assets.starIconFilled} alt="star-icon" /> 4.5
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1">
+        {/* Hotel + Location */}
+        <div className="mb-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-bold text-sm leading-snug" style={{ color: "var(--color-text-primary)" }}>
+              {room.hotel?.name}
+            </h3>
+            <div className="flex items-center gap-0.5 shrink-0">
+              <StarRating rating={4} />
+              <span className="text-[11px] ml-1" style={{ color: "var(--color-text-muted)" }}>4.5</span>
+            </div>
           </div>
+          <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 shrink-0">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {room.hotel?.city}, India
+          </p>
         </div>
 
-        <div className='flex items-center gap-1 text-sm'>
-        <img src={assets.locationIcon} alt="location-icon" />
-        <span>{room.hotel.address}</span>
+        {/* Amenities */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          {(room.amenities || []).slice(0, 3).map((a, i) => (
+            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full"
+              style={{ background: "var(--color-surface-3)", color: "var(--color-text-secondary)" }}>
+              {a}
+            </span>
+          ))}
         </div>
 
-          <div className='flex items-center justify-between mt-4'>
-            <p><span className='text-xl text-gray-800'>${room.pricePerNight}</span>/night</p>
-            <button className='px-4 py-2 text-sm font-medium border border-gray-300 rounded hover:bg-gray-50 transition-all cursor-pointer'>Book Now</button>
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
+          <div>
+            <span className="font-black text-lg" style={{ color: "var(--color-primary)" }}>
+              {currency}{room.pricePerNight?.toLocaleString("en-IN")}
+            </span>
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>/night</span>
+          </div>
+          <button
+            className="btn-primary text-xs py-2 px-4"
+            onClick={(e) => { e.stopPropagation(); navigate(`/rooms/${room._id}`); window.scrollTo(0, 0); }}
+          >
+            Book Now
+          </button>
         </div>
       </div>
-    </Link>
-  )
-}
+    </motion.div>
+  );
+};
 
-export default HotelCard
+export default HotelCard;

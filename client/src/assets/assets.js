@@ -1,3 +1,10 @@
+const CLOUD = "dgqgzmzed";
+
+// ─── Helper: build Cloudinary optimised URL ────────────────────
+const cld = (publicId, w = 800) =>
+  `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
+
+// ─── SVG icons (tiny — fine to bundle locally) ────────────────
 import logo from './logo.svg'
 import searchIcon from './searchIcon.svg'
 import userIcon from './userIcon.svg'
@@ -23,20 +30,24 @@ import badgeIcon from './badgeIcon.svg'
 import menuIcon from './menuIcon.svg'
 import closeMenu from './closeMenu.svg'
 import guestsIcon from './guestsIcon.svg'
-import roomImg1 from './roomImg1.png'
-import roomImg2 from './roomImg2.png'
-import roomImg3 from './roomImg3.png'
-import roomImg4 from './roomImg4.png'
-import regImage from './regImage.png'
-import exclusiveOfferCardImg1 from "./exclusiveOfferCardImg1.png";
-import exclusiveOfferCardImg2 from "./exclusiveOfferCardImg2.png";
-import exclusiveOfferCardImg3 from "./exclusiveOfferCardImg3.png";
 import addIcon from "./addIcon.svg";
 import dashboardIcon from "./dashboardIcon.svg";
 import listIcon from "./listIcon.svg";
 import uploadArea from "./uploadArea.svg";
 import totalBookingIcon from "./totalBookingIcon.svg";
 import totalRevenueIcon from "./totalRevenueIcon.svg";
+
+// ─── PNG images → Cloudinary CDN (yoyo/assets/) ────────────────
+const heroImage  = cld("yoyo/assets/hero_image",  1920);
+const regImage   = cld("yoyo/assets/reg_image",    1200);
+const roomImg1   = cld("yoyo/assets/room_img_1",   900);
+const roomImg2   = cld("yoyo/assets/room_img_2",   900);
+const roomImg3   = cld("yoyo/assets/room_img_3",   900);
+const roomImg4   = cld("yoyo/assets/room_img_4",   900);
+const offerImg1  = cld("yoyo/assets/offer_1",      600);
+const offerImg2  = cld("yoyo/assets/offer_2",      600);
+const offerImg3  = cld("yoyo/assets/offer_3",      600);
+
 
 
 export const assets = {
@@ -65,6 +76,7 @@ export const assets = {
     menuIcon,
     closeMenu,
     guestsIcon,
+    heroImage,
     regImage,
     addIcon,
     dashboardIcon,
@@ -75,24 +87,102 @@ export const assets = {
 }
 
 export const cities = [
-    "Dubai",
-    "Singapore",
-    "New York",
-    "London",
+    "Mumbai", "Delhi", "Goa", "Jaipur", "Bengaluru", "Hyderabad",
+    "Chennai", "Kolkata", "Manali", "Udaipur", "Agra", "Pune",
+    "Kochi", "Ahmedabad", "Varanasi", "Darjeeling", "Rishikesh",
+    "Shimla", "Coorg", "Ooty",
 ];
 
-// Exclusive Offers Dummy Data
+// Cloudinary cloud name
+const cldImg = (id, w = 600) =>
+    `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_auto,w_${w}/${id}`;
+
+// Featured Destinations — all images served from Cloudinary CDN
+export const featuredDestinations = [
+    {
+        city: "Goa",
+        tagline: "Sun, Sand & Serenity",
+        image: cldImg("yoyo/cities/goa"),
+        hotels: 1240,
+    },
+    {
+        city: "Jaipur",
+        tagline: "The Pink City",
+        image: cldImg("yoyo/rooms/jaipur_1", 600),
+        hotels: 980,
+    },
+    {
+        city: "Mumbai",
+        tagline: "City of Dreams",
+        image: cldImg("yoyo/cities/mumbai"),
+        hotels: 2100,
+    },
+    {
+        city: "Manali",
+        tagline: "Himalayan Escape",
+        image: cldImg("yoyo/cities/manali"),
+        hotels: 450,
+    },
+    {
+        city: "Udaipur",
+        tagline: "City of Lakes",
+        image: cldImg("yoyo/cities/udaipur"),
+        hotels: 620,
+    },
+    {
+        city: "Delhi",
+        tagline: "Heart of India",
+        image: cldImg("yoyo/cities/delhi"),
+        hotels: 3200,
+    },
+    {
+        city: "Bengaluru",
+        tagline: "Garden City",
+        image: cldImg("yoyo/cities/bengaluru"),
+        hotels: 1850,
+    },
+    {
+        city: "Kochi",
+        tagline: "Queen of Arabian Sea",
+        image: cldImg("yoyo/cities/kochi"),
+        hotels: 730,
+    },
+];
+
+// Exclusive Offers — using original images uploaded to Cloudinary yoyo/assets/
 export const exclusiveOffers = [
-    { _id: 1, title: "Summer Escape Package", description: "Enjoy a complimentary night and daily breakfast", priceOff: 25, expiryDate: "Aug 31", image: exclusiveOfferCardImg1 },
-    { _id: 2, title: "Romantic Getaway", description: "Special couples package including spa treatment", priceOff: 20, expiryDate: "Sep 20", image: exclusiveOfferCardImg2 },
-    { _id: 3, title: "Luxury Retreat", description: "Book 60 days in advance and save on your stay at any of our luxury properties worldwide.", priceOff: 30, expiryDate: "Sep 25", image: exclusiveOfferCardImg3 },
-]
+    {
+        _id: 1,
+        title: "Summer Escape Package",
+        description: "Enjoy a complimentary night and daily breakfast for two",
+        priceOff: 25,
+        expiryDate: "Aug 31",
+        image: offerImg1,
+    },
+    {
+        _id: 2,
+        title: "Romantic Getaway",
+        description: "Special couples package including spa treatment and candlelight dinner",
+        priceOff: 20,
+        expiryDate: "Sep 20",
+        image: offerImg2,
+    },
+    {
+        _id: 3,
+        title: "Luxury Retreat",
+        description: "Book 60 days in advance and save big on luxury properties across India.",
+        priceOff: 30,
+        expiryDate: "Sep 25",
+        image: offerImg3,
+    },
+];
 
 // Testimonials Dummy Data
 export const testimonials = [
-    { id: 1, name: "Emma Rodriguez", address: "Barcelona, Spain", image: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=200", rating: 5, review: "I've used many booking platforms before, but none compare to the personalized experience and attention to detail that QuickStay provides." },
-    { id: 2, name: "Liam Johnson", address: "New York, USA", image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200", rating: 4, review: "QuickStay exceeded my expectations. The booking process was seamless, and the hotels were absolutely top-notch. Highly recommended!" },
-    { id: 3, name: "Sophia Lee", address: "Seoul, South Korea", image: "https://images.unsplash.com/photo-1701615004837-40d8573b6652?q=80&w=200", rating: 5, review: "Amazing service! I always find the best luxury accommodations through QuickStay. Their recommendations never disappoint!" }
+    { id: 1, name: "Priya Sharma", address: "Delhi, India", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200", rating: 5, review: "Booked a hotel in Goa through YoYo and it was absolutely perfect. The prices were unbeatable and check-in was instant. Will definitely use again!" },
+    { id: 2, name: "Rahul Mehta", address: "Mumbai, India", image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200", rating: 5, review: "YoYo is my go-to for business travel. Found a great hotel in Bengaluru at the last minute. Seamless booking, professional service." },
+    { id: 3, name: "Ananya Singh", address: "Bangalore, India", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200", rating: 4, review: "Amazing platform! Found beautiful heritage properties in Jaipur that I couldn't find elsewhere. The photos were accurate and the rooms were even better in person." },
+    { id: 4, name: "Vikram Nair", address: "Kochi, India", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=200", rating: 5, review: "Stayed at a gorgeous resort in Udaipur booked through YoYo. The pay-at-hotel option gave me flexibility. Highly recommended!" },
 ];
 
 // Facility Icon
@@ -140,15 +230,16 @@ export const hotelDummyData = {
     "__v": 0
 }
 
-// Rooms Dummy Data
+// Rooms Dummy Data — images from Cloudinary
+const cx = (id) => `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_auto,w_600/${id}`;
 export const roomsDummyData = [
     {
         "_id": "67f7647c197ac559e4089b96",
         "hotel": hotelDummyData,
         "roomType": "Double Bed",
-        "pricePerNight": 399,
+        "pricePerNight": 2499,
         "amenities": ["Room Service", "Mountain View", "Pool Access"],
-        "images": [roomImg1, roomImg2, roomImg3, roomImg4],
+        "images": [cx("yoyo/rooms/goa_1"), cx("yoyo/rooms/goa_2"), cx("yoyo/rooms/goa_villa_1"), cx("yoyo/rooms/goa_villa_2")],
         "isAvailable": true,
         "createdAt": "2025-04-10T06:26:04.013Z",
         "updatedAt": "2025-04-10T06:26:04.013Z",
@@ -157,10 +248,10 @@ export const roomsDummyData = [
     {
         "_id": "67f76452197ac559e4089b8e",
         "hotel": hotelDummyData,
-        "roomType": "Double Bed",
-        "pricePerNight": 299,
-        "amenities": ["Room Service", "Mountain View", "Pool Access"],
-        "images": [roomImg2, roomImg3, roomImg4, roomImg1],
+        "roomType": "Luxury Room",
+        "pricePerNight": 4999,
+        "amenities": ["Room Service", "Free Breakfast", "Pool Access"],
+        "images": [cx("yoyo/rooms/udaipur_1"), cx("yoyo/rooms/udaipur_2"), cx("yoyo/rooms/udaipur_heritage_1"), cx("yoyo/rooms/udaipur_heritage_2")],
         "isAvailable": true,
         "createdAt": "2025-04-10T06:25:22.593Z",
         "updatedAt": "2025-04-10T06:25:22.593Z",
@@ -169,10 +260,10 @@ export const roomsDummyData = [
     {
         "_id": "67f76406197ac559e4089b82",
         "hotel": hotelDummyData,
-        "roomType": "Double Bed",
-        "pricePerNight": 249,
-        "amenities": ["Free WiFi", "Free Breakfast", "Room Service"],
-        "images": [roomImg3, roomImg4, roomImg1, roomImg2],
+        "roomType": "Single Bed",
+        "pricePerNight": 1299,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Room Service"],
+        "images": [cx("yoyo/rooms/mumbai_1"), cx("yoyo/rooms/mumbai_2"), cx("yoyo/rooms/mumbai_std_1"), cx("yoyo/rooms/mumbai_std_2")],
         "isAvailable": true,
         "createdAt": "2025-04-10T06:24:06.285Z",
         "updatedAt": "2025-04-10T06:24:06.285Z",
@@ -181,10 +272,10 @@ export const roomsDummyData = [
     {
         "_id": "67f763d8197ac559e4089b7a",
         "hotel": hotelDummyData,
-        "roomType": "Single Bed",
-        "pricePerNight": 199,
-        "amenities": ["Free WiFi", "Room Service", "Pool Access"],
-        "images": [roomImg4, roomImg1, roomImg2, roomImg3],
+        "roomType": "Family Suite",
+        "pricePerNight": 7499,
+        "amenities": ["Free Wi-Fi", "Room Service", "Pool Access"],
+        "images": [cx("yoyo/rooms/manali_1"), cx("yoyo/rooms/manali_2"), cx("yoyo/rooms/manali_chalet_1"), cx("yoyo/rooms/manali_chalet_2")],
         "isAvailable": true,
         "createdAt": "2025-04-10T06:23:20.252Z",
         "updatedAt": "2025-04-10T06:23:20.252Z",
