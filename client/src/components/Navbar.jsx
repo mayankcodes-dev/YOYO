@@ -45,7 +45,7 @@ const DarkToggle = ({ darkMode, toggleDarkMode }) => (
 );
 
 // ─── Avatar dropdown ──────────────────────────────────────────
-const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
+const AvatarMenu = ({ user, logout, navigate, isOwner, isAdmin, setShowHotelReg }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -90,7 +90,11 @@ const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
             </div>
 
             <div className="py-1.5">
+              <MenuItem onClick={() => { navigate('/profile');     setOpen(false); }}>My Profile</MenuItem>
               <MenuItem onClick={() => { navigate('/my-bookings'); setOpen(false); }}>My Bookings</MenuItem>
+              {isAdmin && (
+                <MenuItem onClick={() => { navigate('/admin'); setOpen(false); }}>Admin Panel</MenuItem>
+              )}
               <MenuItem onClick={() => {
                 setOpen(false);
                 isOwner ? navigate('/owner') : setShowHotelReg(true);
@@ -139,7 +143,7 @@ const NavLink = ({ to, children, active }) => (
 // ─── MAIN NAVBAR ──────────────────────────────────────────────
 const Navbar = () => {
   const location = useLocation();
-  const { user, darkMode, toggleDarkMode, logout, navigate, isOwner, setShowHotelReg } = useAppContext();
+  const { user, darkMode, toggleDarkMode, logout, navigate, isOwner, isAdmin, setShowHotelReg } = useAppContext();
   const isActive = p => p === '/' ? location.pathname === '/' : location.pathname.startsWith(p);
 
   const links = [
@@ -190,6 +194,7 @@ const Navbar = () => {
               logout={logout}
               navigate={navigate}
               isOwner={isOwner}
+              isAdmin={isAdmin}
               setShowHotelReg={setShowHotelReg}
             />
           ) : (

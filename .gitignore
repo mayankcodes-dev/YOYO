@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 .pnp
+
+# LLM Project Context (keep local only — too large for repo)
+AI_CONTEXT.md
 .pnp.js
 
 # Environment variables — NEVER commit these

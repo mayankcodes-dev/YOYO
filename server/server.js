@@ -14,6 +14,8 @@ import userRouter    from './routes/userRoutes.js';
 import hotelRouter   from './routes/hotelRoutes.js';
 import roomRouter    from './routes/roomRoutes.js';
 import bookingRouter from './routes/bookingRoutes.js';
+import reviewRouter  from './routes/reviewRoutes.js';
+import adminRouter   from './routes/adminRoutes.js';
 
 const app = express();
 
@@ -94,6 +96,8 @@ app.use('/api/user',     userRouter);
 app.use('/api/hotels',   hotelRouter);
 app.use('/api/rooms',    roomRouter);
 app.use('/api/bookings', bookingRouter);
+app.use('/api/reviews',  reviewRouter);
+app.use('/api/admin',    adminRouter);
 
 // 404
 app.use((_req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
