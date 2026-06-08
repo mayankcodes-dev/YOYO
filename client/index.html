@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FF385C" />
     <title>YoYo — Book Hotels, Rooms &amp; Stays Across India</title>
     <meta name="description" content="Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed. YoYo — your perfect stay awaits." />
@@ -27,7 +27,21 @@
     <link rel="canonical" href="https://yoyorooms.com" />
   </head>
   <body>
+    <!-- Skip to main content — keyboard accessibility -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-red-600 focus:text-white focus:rounded-lg focus:font-bold focus:text-sm"
+    >
+      Skip to main content
+    </a>
+
     <div id="root"></div>
+    <noscript>
+      <div style="text-align:center;padding:40px;font-family:sans-serif">
+        <h1>YoYo Rooms requires JavaScript</h1>
+        <p>Please enable JavaScript in your browser to use this site.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

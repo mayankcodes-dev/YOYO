@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -6,6 +6,7 @@ import StarRating from "../components/StarRating";
 import HotelCard from "../components/HotelCard";
 import SkeletonCard from "../components/SkeletonCard";
 import { useAppContext } from "../context/AppContext";
+import { ROOM_TYPES, PRICE_RANGES, CATEGORIES, SORT_OPTIONS, matchesPrice } from "../constants/filters";
 
 // ── Indian cities autocomplete ────────────────────────────
 const CITIES = [
@@ -17,12 +18,7 @@ const CITIES = [
 
 const today = new Date().toISOString().split("T")[0];
 
-// ── Filter constants ─────────────────────────────────────
-const roomTypes   = ["Single Bed","Double Bed","Family Suite","Luxury Suite","Mountain View Cottage","Heritage Suite","Business Suite"];
-const priceRanges = ["Under ₹1,000","₹1,000 – ₹2,500","₹2,500 – ₹5,000","₹5,000 – ₹10,000","Above ₹10,000"];
-const categories  = ["Budget","Premium","Luxury","Villa","Business"];
-const sortOptions = ["Price: Low to High","Price: High to Low","Top Rated","Newest First"];
-const STAR_FILTERS= [5, 4, 3];
+const STAR_FILTERS = [5, 4, 3];
 
 // ── Checkbox ─────────────────────────────────────────────
 const CheckBox = ({ label, selected, onChange }) => (
@@ -54,14 +50,14 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
     setFilters(p => ({ ...p, [key]: checked ? [...p[key], value] : p[key].filter(v => v !== value) }));
 
   return (
-    <div className="rounded-2xl p-5 w-full lg:w-72 shrink-0" style={{ background: "var(--color-surface-2)", boxShadow: "var(--shadow-md)" }}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-2xl p-8 w-full lg:w-72 shrink-0" style={{ background: "var(--color-surface-2)", boxShadow: "var(--shadow-md)" }}>
+      <div className="flex items-center justify-between mb-5">
         <h2 className="font-bold text-base" style={{ color: "var(--color-text-primary)" }}>Filters</h2>
         <button onClick={onClear} className="text-xs font-semibold" style={{ color: "var(--color-primary)" }}>Clear all</button>
       </div>
 
       {/* Star rating */}
-      <div className="mb-5">
+      <div className="mb-6">
         <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-primary)" }}>Star Rating</p>
         {STAR_FILTERS.map(s => (
           <CheckBox key={s} label={`${"★".repeat(s)} & above`} selected={filters.stars.includes(s)} onChange={toggle("stars")} />
@@ -71,7 +67,7 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
       {/* Category */}
       <div className="mb-5">
         <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-primary)" }}>Category</p>
-        {categories.map(cat => (
+        {CATEGORIES.map(cat => (
           <CheckBox key={cat} label={cat} selected={filters.category.includes(cat)} onChange={toggle("category")} />
         ))}
       </div>
@@ -79,7 +75,7 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
       {/* Room type */}
       <div className="mb-5">
         <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-primary)" }}>Room Type</p>
-        {roomTypes.map(r => (
+        {ROOM_TYPES.map(r => (
           <CheckBox key={r} label={r} selected={filters.roomType.includes(r)} onChange={toggle("roomType")} />
         ))}
       </div>
@@ -87,7 +83,7 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
       {/* Price range */}
       <div className="mb-5">
         <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-primary)" }}>Price Range</p>
-        {priceRanges.map(range => (
+        {PRICE_RANGES.map(range => (
           <CheckBox key={range} label={range} selected={filters.priceRange.includes(range)} onChange={toggle("priceRange")} />
         ))}
       </div>
@@ -95,7 +91,7 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
       {/* Sort */}
       <div>
         <p className="font-semibold text-sm mb-2" style={{ color: "var(--color-text-primary)" }}>Sort By</p>
-        {sortOptions.map(opt => (
+        {SORT_OPTIONS.map(opt => (
           <RadioButton key={opt} label={opt} selected={selectedSort === opt} onChange={setSelectedSort} />
         ))}
       </div>
@@ -103,19 +99,6 @@ const FilterPanel = ({ filters, setFilters, selectedSort, setSelectedSort, onCle
   );
 };
 
-// ── Price matcher ─────────────────────────────────────────
-const matchesPrice = (room, priceRange) => {
-  if (!priceRange.length) return true;
-  return priceRange.some(range => {
-    const p = room.pricePerNight;
-    if (range === "Under ₹1,000")      return p < 1000;
-    if (range === "₹1,000 – ₹2,500")  return p >= 1000 && p <= 2500;
-    if (range === "₹2,500 – ₹5,000")  return p >= 2500 && p <= 5000;
-    if (range === "₹5,000 – ₹10,000") return p >= 5000 && p <= 10000;
-    if (range === "Above ₹10,000")     return p > 10000;
-    return false;
-  });
-};
 
 // ── City Autocomplete Search Bar ──────────────────────────
 const CitySearchBar = ({ value, onChange, onSearch }) => {
@@ -240,15 +223,18 @@ const AllRooms = () => {
   const activeFilterCount = filters.roomType.length + filters.priceRange.length + filters.category.length + filters.stars.length;
 
   return (
-    <div className="min-h-screen pt-24 md:pt-28 pb-16 px-4 md:px-16 lg:px-24 xl:px-32"
-      style={{ background: "var(--color-surface)" }}>
+    <main
+      id="main-content"
+      className="min-h-screen pt-24 md:pt-32 pb-20 px-4 md:px-16 lg:px-24 xl:px-32"
+      style={{ background: "var(--color-surface)" }}
+    >
       <Helmet>
         <title>{destination ? `Hotels in ${destination}` : "Browse All Hotels"} — YoYo Rooms</title>
         <meta name="description" content={`Find and book the best hotels${destination ? ` in ${destination}` : ""} at affordable prices on YoYo Rooms.`} />
       </Helmet>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-6">
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="mb-8">
         <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "var(--color-primary)" }}>
           {destination ? `Results for "${destination}"` : "All Hotels"}
         </p>
@@ -374,7 +360,7 @@ const AllRooms = () => {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

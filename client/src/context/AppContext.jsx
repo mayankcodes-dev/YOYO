@@ -146,10 +146,12 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { fetchRooms(); }, []);
 
   const value = {
-    currency, navigate, axios,
-    user, token, isOwner, isAdmin, setIsOwner,
-    getToken, saveSession, updateUser,
+    currency, navigate,
+    user, token, getToken, axios,
+    isOwner, setIsOwner,
+    isAdmin, setIsAdmin,
     login, logout, register, googleLogin,
+    saveSession, updateUser,
     showHotelReg, setShowHotelReg,
     searchedCities, setSearchedCities,
     rooms, setRooms, fetchRooms,

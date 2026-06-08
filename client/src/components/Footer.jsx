@@ -1,31 +1,6 @@
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 
-const CLOUD = "dgqgzmzed";
-
-// ── OYO-style logo (same as Navbar) ──────────────────────────
-const YoYoLogo = () => (
-  <div
-    className="inline-flex items-center justify-center select-none"
-    style={{
-      background: "#E8003D",
-      borderRadius: "8px",
-      padding: "5px 14px",
-    }}
-  >
-    <span
-      style={{
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 900,
-        fontSize: "22px",
-        color: "#FFFFFF",
-        letterSpacing: "-0.04em",
-        lineHeight: 1,
-      }}
-    >
-      YoYo
-    </span>
-  </div>
-);
 
 const columns = [
   {
@@ -125,7 +100,7 @@ const Footer = () => {
 
           {/* Brand column */}
           <div className="lg:col-span-2">
-            <YoYoLogo />
+            <Logo size="lg" />
 
             <p className="text-sm text-white/50 leading-relaxed max-w-xs mt-5 mb-6">
               India's fastest-growing hotel booking platform. Budget to luxury —
