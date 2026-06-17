@@ -10,6 +10,7 @@ import CategoryTabs from "../components/CategoryTabs";
 import FlashDeals from "../components/FlashDeals";
 import AppBanner from "../components/AppBanner";
 import SkeletonCard from "../components/SkeletonCard";
+import HowItWorks from "../components/HowItWorks";
 import { motion } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 
@@ -157,6 +158,9 @@ const Home = () => {
             </Link>
           </div>
         </section>
+
+        {/* How It Works — 3-step process */}
+        <HowItWorks />
 
         {/* Flash Deals with countdown */}
         <FlashDeals />
