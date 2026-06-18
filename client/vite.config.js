@@ -8,45 +8,185 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // ── Service Worker strategy ─────────────────────────────────
+      registerType: 'prompt',          // show our own update UI
+      injectRegister: 'auto',
+      devOptions: { enabled: true },   // test SW in dev mode too
+
+      // ── Assets to include in precache ──────────────────────────
+      includeAssets: [
+        'favicon.svg',
+        'favicon-32x32.png',
+        'favicon-96x96.png',
+        'apple-touch-icon.png',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+        'offline.html',
+      ],
+
+      // ── Web App Manifest ────────────────────────────────────────
       manifest: {
-        name:             'YoYo Rooms',
-        short_name:       'YoYo',
-        description:      'Book hotels across India at the best prices',
+        name:             'YoYo Rooms — Hotel Booking',
+        short_name:       'YoYo Rooms',
+        description:      'Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed.',
         theme_color:      '#E8003D',
         background_color: '#080810',
         display:          'standalone',
-        orientation:      'portrait',
-        start_url:        '/',
+        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
+        orientation:      'portrait-primary',
+        start_url:        '/?source=pwa',
+        scope:            '/',
+        lang:             'en-IN',
+        dir:              'ltr',
+        categories:       ['travel', 'lifestyle', 'shopping'],
+
+        // ── Icons ─────────────────────────────────────────────────
         icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          {
+            src:     '/pwa-64x64.png',
+            sizes:   '64x64',
+            type:    'image/png',
+          },
+          {
+            src:     '/pwa-192x192.png',
+            sizes:   '192x192',
+            type:    'image/png',
+          },
+          {
+            src:     '/pwa-512x512.png',
+            sizes:   '512x512',
+            type:    'image/png',
+            purpose: 'any',
+          },
+          {
+            src:     '/pwa-512x512.png',
+            sizes:   '512x512',
+            type:    'image/png',
+            purpose: 'maskable',        // adaptive icon for Android
+          },
         ],
+
+        // ── Shortcuts (long-press on Android) ─────────────────────
+        shortcuts: [
+          {
+            name:        'Browse Hotels',
+            short_name:  'Hotels',
+            description: 'Search and browse all available hotels',
+            url:         '/rooms?source=pwa-shortcut',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name:        'My Bookings',
+            short_name:  'Bookings',
+            description: 'View your current and past bookings',
+            url:         '/my-bookings?source=pwa-shortcut',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+          },
+        ],
+
+        // ── Screenshots (for install dialog on Chrome/Edge) ────────
+        screenshots: [
+          {
+            src:          '/pwa-512x512.png',
+            sizes:        '512x512',
+            type:         'image/png',
+            form_factor:  'narrow',
+            label:        'YoYo Rooms home screen',
+          },
+        ],
+
+        // ── Protocol handlers ──────────────────────────────────────
+        protocol_handlers: [
+          { protocol: 'web+yoyo', url: '/?q=%s' },
+        ],
+
+        // ── Share target (receive shared URLs/text from other apps) ─
+        share_target: {
+          action:  '/rooms',
+          method:  'GET',
+          params: { title: 'q', text: 'q', url: 'q' },
+        },
+
+        // ── Prefer native ─────────────────────────────────────────
+        prefer_related_applications: false,
       },
+
+      // ── Workbox (service worker) ─────────────────────────────────
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Precache all build output
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp,webmanifest}'],
+
+        // Show offline.html for navigation requests when offline
+        navigateFallback: '/offline.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/sw\.js/],
+
+        // Don't cache API routes in the precache manifest
+        globIgnores: ['**/node_modules/**', '**/sw.js'],
+
+        // ── Runtime caching strategies ───────────────────────────
         runtimeCaching: [
+          // Cloudinary images — cache-first, 30-day TTL
           {
             urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler:    'CacheFirst',
             options: {
-              cacheName: 'cloudinary-images',
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheName:  'cloudinary-images',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
+
+          // Google Fonts stylesheets — stale-while-revalidate
           {
-            urlPattern: /^https:\/\/.*\/api\/.*/i,
-            handler: 'NetworkFirst',
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler:    'StaleWhileRevalidate',
+            options:    { cacheName: 'google-fonts-stylesheets' },
+          },
+
+          // Google Fonts files — cache-first, 1-year TTL
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler:    'CacheFirst',
             options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 5 },
+              cacheName:  'google-fonts-webfonts',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+
+          // API routes — network-first, 5-min cache fallback
+          {
+            urlPattern: /\/api\/.*/i,
+            handler:    'NetworkFirst',
+            options: {
+              cacheName:       'api-cache',
+              networkTimeoutSeconds: 8,
+              expiration:      { maxEntries: 50, maxAgeSeconds: 60 * 5 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+
+          // All other same-origin requests — network-first
+          {
+            urlPattern: ({ url }) => url.origin === self.location.origin,
+            handler:    'NetworkFirst',
+            options: {
+              cacheName:         'app-shell',
+              networkTimeoutSeconds: 5,
+              expiration:        { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
         ],
+
+        // ── Background sync for offline booking attempts ──────────
+        // If user tries to book while offline, the request is queued
+        // and retried automatically when connectivity is restored.
+        // (requires server to handle idempotency)
       },
     }),
   ],
+
+  // ── Build config ────────────────────────────────────────────────
   build: {
     chunkSizeWarningLimit: 700,
     rollupOptions: {

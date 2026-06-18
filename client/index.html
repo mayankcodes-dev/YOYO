@@ -2,29 +2,55 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- ── Viewport & theme ──────────────────────────────── -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#FF385C" />
+    <meta name="theme-color" content="#E8003D" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#E8003D" media="(prefers-color-scheme: dark)" />
+
+    <!-- ── Icons ─────────────────────────────────────────── -->
+    <link rel="icon"             type="image/svg+xml"   href="/favicon.svg" />
+    <link rel="icon"             type="image/png"        href="/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon"             type="image/png"        href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- ── PWA manifest ──────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── iOS PWA meta tags ─────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable"          content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title"            content="YoYo Rooms" />
+    <meta name="mobile-web-app-capable"                content="yes" />
+
+    <!-- ── MS Tile (Windows) ─────────────────────────────── -->
+    <meta name="msapplication-TileColor" content="#E8003D" />
+    <meta name="msapplication-TileImage" content="/pwa-192x192.png" />
+    <meta name="msapplication-config"    content="none" />
+
+    <!-- ── Primary meta ──────────────────────────────────── -->
     <title>YoYo — Book Hotels, Rooms &amp; Stays Across India</title>
-    <meta name="description" content="Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed. YoYo — your perfect stay awaits." />
-    <meta name="keywords" content="hotel booking, OYO alternative, budget hotels India, luxury hotels, YoYo rooms, pay at hotel" />
-    <meta name="author" content="Mayank Singh" />
+    <meta name="description"   content="Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed. YoYo — your perfect stay awaits." />
+    <meta name="keywords"      content="hotel booking, OYO alternative, budget hotels India, luxury hotels, YoYo rooms, pay at hotel" />
+    <meta name="author"        content="Mayank Singh" />
+    <meta name="application-name" content="YoYo Rooms" />
 
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="YoYo — Book Hotels, Rooms & Stays Across India" />
+    <!-- ── Open Graph ────────────────────────────────────── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:title"       content="YoYo — Book Hotels, Rooms &amp; Stays Across India" />
     <meta property="og:description" content="Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed." />
-    <meta property="og:image" content="/og-image.png" />
-    <meta property="og:url" content="https://yoyorooms.com" />
-    <meta property="og:site_name" content="YoYo" />
+    <meta property="og:image"       content="/pwa-512x512.png" />
+    <meta property="og:url"         content="https://quickstay.vercel.app" />
+    <meta property="og:site_name"   content="YoYo Rooms" />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="YoYo — Book Hotels, Rooms & Stays Across India" />
+    <!-- ── Twitter Card ──────────────────────────────────── -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="YoYo — Book Hotels, Rooms &amp; Stays Across India" />
     <meta name="twitter:description" content="Book budget to luxury hotels across India. Verified stays, instant confirmation, best prices guaranteed." />
+    <meta name="twitter:image"       content="/pwa-512x512.png" />
 
-    <!-- Canonical -->
-    <link rel="canonical" href="https://yoyorooms.com" />
+    <!-- ── Canonical ─────────────────────────────────────── -->
+    <link rel="canonical" href="https://quickstay.vercel.app" />
   </head>
   <body>
     <!-- Skip to main content — keyboard accessibility -->
@@ -36,12 +62,14 @@
     </a>
 
     <div id="root"></div>
+
     <noscript>
       <div style="text-align:center;padding:40px;font-family:sans-serif">
         <h1>YoYo Rooms requires JavaScript</h1>
         <p>Please enable JavaScript in your browser to use this site.</p>
       </div>
     </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
