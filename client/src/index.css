@@ -3,51 +3,53 @@
 @import "tailwindcss";
 
 /* ============================================================
-   YOYO DESIGN TOKENS — SpaceX-level dark premium aesthetic
-   Primary: OYO-inspired red #E8003D | Dark: #080810
+   YOYO DESIGN TOKENS — Clean, White-dominant, Vibrant Red
+   Primary: #FF2D55 (bright red) | Background: Pure White
+   Inspired by: Airbnb, OYO, Apple — light & premium
    ============================================================ */
 :root {
   /* ── Brand ──────────────────────────────────────── */
-  --color-primary:        #E8003D;
-  --color-primary-hover:  #CC0035;
-  --color-primary-light:  rgba(232, 0, 61, 0.12);
-  --color-primary-glow:   rgba(232, 0, 61, 0.30);
-  --color-accent:         #F5A623;
-  --color-accent-hover:   #D9911E;
-  --color-gold:           #FFD700;
+  --color-primary:        #FF2D55;
+  --color-primary-hover:  #E6294D;
+  --color-primary-light:  rgba(255, 45, 85, 0.08);
+  --color-primary-glow:   rgba(255, 45, 85, 0.22);
+  --color-accent:         #FF9F0A;
+  --color-accent-hover:   #E08800;
+  --color-gold:           #FFB800;
 
-  /* ── Light mode surfaces ────────────────────────── */
-  --color-dark:           #080810;
-  --color-surface:        #F6F6FC;
+  /* ── Light mode surfaces — pure white dominant ──── */
+  --color-dark:           #111111;
+  --color-surface:        #FFFFFF;
   --color-surface-2:      #FFFFFF;
-  --color-surface-3:      #EDEDF7;
-  --color-border:         rgba(10, 10, 40, 0.09);
-  --color-border-strong:  rgba(10, 10, 40, 0.18);
+  --color-surface-3:      #F5F5F7;
+  --color-surface-4:      #FAFAFA;
+  --color-border:         rgba(0, 0, 0, 0.08);
+  --color-border-strong:  rgba(0, 0, 0, 0.15);
 
-  /* ── Text ───────────────────────────────────────── */
-  --color-text-primary:   #0D0D1A;
-  --color-text-secondary: #4A4A6A;
-  --color-text-muted:     #8888AA;
+  /* ── Text — neutral charcoal, not blue-black ────── */
+  --color-text-primary:   #1A1A1A;
+  --color-text-secondary: #555555;
+  --color-text-muted:     #999999;
   --color-text-inverse:   #FFFFFF;
 
   /* ── Semantic ───────────────────────────────────── */
-  --color-success:        #10B981;
-  --color-success-light:  rgba(16, 185, 129, 0.14);
-  --color-success-text:   #065F46;
-  --color-warning:        #F59E0B;
-  --color-warning-light:  rgba(245, 158, 11, 0.14);
-  --color-warning-text:   #92400E;
-  --color-error:          #EF4444;
-  --color-info:           #3B82F6;
+  --color-success:        #30D158;
+  --color-success-light:  rgba(48, 209, 88, 0.10);
+  --color-success-text:   #1A7A33;
+  --color-warning:        #FF9F0A;
+  --color-warning-light:  rgba(255, 159, 10, 0.10);
+  --color-warning-text:   #8A5500;
+  --color-error:          #FF3B30;
+  --color-info:           #0A84FF;
 
-  /* ── Shadows ────────────────────────────────────── */
-  --shadow-xs:   0 1px 2px rgba(10,10,40,0.04);
-  --shadow-sm:   0 2px 6px rgba(10,10,40,0.06), 0 1px 2px rgba(10,10,40,0.04);
-  --shadow-md:   0 4px 16px rgba(10,10,40,0.09), 0 2px 4px rgba(10,10,40,0.05);
-  --shadow-lg:   0 8px 32px rgba(10,10,40,0.11), 0 4px 8px rgba(10,10,40,0.06);
-  --shadow-xl:   0 20px 48px rgba(10,10,40,0.14), 0 8px 16px rgba(10,10,40,0.07);
-  --shadow-glow: 0 0 0 3px rgba(232, 0, 61, 0.22);
-  --shadow-red:  0 8px 32px rgba(232, 0, 61, 0.35);
+  /* ── Shadows — warm, light, elegant ─────────────── */
+  --shadow-xs:   0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.05);
+  --shadow-xl:   0 20px 48px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
+  --shadow-glow: 0 0 0 3px rgba(255, 45, 85, 0.18);
+  --shadow-red:  0 8px 28px rgba(255, 45, 85, 0.28);
 
   /* ── Radius ─────────────────────────────────────── */
   --radius-xs:   4px;
@@ -84,22 +86,23 @@
 
 /* ── DARK MODE ─────────────────────────────────────────────── */
 .dark {
-  --color-surface:        #080810;
-  --color-surface-2:      #0E0E1C;
-  --color-surface-3:      #161628;
-  --color-border:         rgba(255, 255, 255, 0.07);
+  --color-surface:        #111111;
+  --color-surface-2:      #1C1C1E;
+  --color-surface-3:      #2C2C2E;
+  --color-surface-4:      #3A3A3C;
+  --color-border:         rgba(255, 255, 255, 0.08);
   --color-border-strong:  rgba(255, 255, 255, 0.14);
-  --color-text-primary:   #EEEEF8;
-  --color-text-secondary: #9898B8;
-  --color-text-muted:     #5A5A7A;
-  --color-success-light:  rgba(16, 185, 129, 0.18);
-  --color-success-text:   #6EE7B7;
-  --color-warning-light:  rgba(245, 158, 11, 0.18);
-  --color-warning-text:   #FCD34D;
-  --shadow-sm:  0 2px 6px rgba(0,0,0,0.28);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.40);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,0.55);
-  --shadow-xl:  0 20px 48px rgba(0,0,0,0.70);
+  --color-text-primary:   #F5F5F7;
+  --color-text-secondary: #AEAEB2;
+  --color-text-muted:     #636366;
+  --color-success-light:  rgba(48, 209, 88, 0.15);
+  --color-success-text:   #30D158;
+  --color-warning-light:  rgba(255, 159, 10, 0.15);
+  --color-warning-text:   #FF9F0A;
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.35);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.50);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.65);
+  --shadow-xl:  0 20px 48px rgba(0,0,0,0.75);
 }
 
 /* ============================================================
@@ -224,10 +227,11 @@ p { line-height: 1.75; }
    GLASSMORPHISM
    ============================================================ */
 .glass {
-  background: rgba(14, 14, 28, 0.65);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.60);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .glass-white {
@@ -239,9 +243,9 @@ p { line-height: 1.75; }
 }
 
 .dark .glass-white {
-  background: rgba(22, 22, 40, 0.88);
+  background: rgba(28, 28, 30, 0.90);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.60);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
 }
 
 /* ============================================================
@@ -325,7 +329,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    UTILITIES
    ============================================================ */
 .text-gradient {
-  background: linear-gradient(135deg, #E8003D 0%, #FF6B6B 50%, #F5A623 100%);
+  background: linear-gradient(135deg, #FF2D55 0%, #FF6B8A 50%, #FF9F0A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
