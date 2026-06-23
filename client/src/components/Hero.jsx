@@ -20,6 +20,8 @@ const trustBadges = [
   { icon: "😊", label: "1M+",     sub: "Happy Guests" },
   { icon: "⚡", label: "Instant", sub: "Confirmation" },
   { icon: "💰", label: "Best",    sub: "Price Guarantee" },
+  { icon: "⭐", label: "4.8/5",   sub: "Avg. Rating" },
+  { icon: "🛡️", label: "100%",   sub: "Secure Payments" },
 ];
 
 const Hero = () => {
@@ -57,7 +59,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative w-full h-screen min-h-[600px] overflow-hidden -mt-[52px]">
+    <section className="relative w-full h-screen min-h-[600px] overflow-hidden -mt-16">
 
       {/* ── Cloudinary-postererd, Pexels-streamed cinematic video ─── */}
       <video
@@ -117,7 +119,10 @@ const Hero = () => {
           animate={{ opacity: 1, y:  0 }}
           transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-[82px] font-extrabold text-white leading-[1.0] mb-5 max-w-5xl"
-          style={{ letterSpacing: "-0.03em" }}
+          style={{
+            letterSpacing: "-0.03em",
+            textShadow: "0 4px 32px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.70), 0 0 80px rgba(0,0,0,0.40)",
+          }}
         >
           Your Perfect Stay,{" "}
           <span
@@ -126,6 +131,7 @@ const Hero = () => {
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
+              filter: "drop-shadow(0 2px 12px rgba(232,0,61,0.55))",
             }}
           >
             One Click
@@ -138,7 +144,8 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y:  0 }}
           transition={{ duration: 0.7, delay: 0.32 }}
-          className="text-white/75 text-base md:text-lg max-w-lg mb-9 leading-relaxed"
+          className="text-white/85 text-base md:text-lg max-w-lg mb-9 leading-relaxed"
+          style={{ textShadow: "0 2px 16px rgba(0,0,0,0.80), 0 1px 4px rgba(0,0,0,0.60)" }}
         >
           Budget to luxury — 10,000+ verified hotels across India.
           <br className="hidden sm:block" />

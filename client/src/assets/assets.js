@@ -183,6 +183,10 @@ export const testimonials = [
     { id: 2, name: "Rahul Mehta", address: "Mumbai, India", image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200", rating: 5, review: "YoYo is my go-to for business travel. Found a great hotel in Bengaluru at the last minute. Seamless booking, professional service." },
     { id: 3, name: "Ananya Singh", address: "Bangalore, India", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200", rating: 4, review: "Amazing platform! Found beautiful heritage properties in Jaipur that I couldn't find elsewhere. The photos were accurate and the rooms were even better in person." },
     { id: 4, name: "Vikram Nair", address: "Kochi, India", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=200", rating: 5, review: "Stayed at a gorgeous resort in Udaipur booked through YoYo. The pay-at-hotel option gave me flexibility. Highly recommended!" },
+    { id: 5, name: "Sunita Patel", address: "Ahmedabad, India", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200", rating: 5, review: "Planned a family trip to Manali and YoYo made it so easy! Found a beautiful chalet with mountain views. Kids loved it and the booking process was super smooth." },
+    { id: 6, name: "Arjun Krishnamurthy", address: "Chennai, India", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200", rating: 4, review: "Used YoYo for a Varanasi heritage stay. The Ganga view property was stunning. Great value for money compared to other booking sites." },
+    { id: 7, name: "Meera Reddy", address: "Hyderabad, India", image: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?q=80&w=200", rating: 5, review: "I travel every month for work and YoYo has the best inventory of business hotels. Instant confirmation, transparent pricing — exactly what a traveller needs!" },
+    { id: 8, name: "Rohit Kapoor", address: "Jaipur, India", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200", rating: 5, review: "Booked a luxury suite at a Shimla property via YoYo for our honeymoon. It exceeded all expectations. The platform is beautiful and so easy to use!" },
 ];
 
 // Facility Icon
@@ -235,7 +239,7 @@ const cx = (id) => `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_au
 export const roomsDummyData = [
     {
         "_id": "67f7647c197ac559e4089b96",
-        "hotel": hotelDummyData,
+        "hotel": { ...hotelDummyData, name: "Seabreeze Villa Goa", city: "Goa" },
         "roomType": "Double Bed",
         "pricePerNight": 2499,
         "amenities": ["Room Service", "Mountain View", "Pool Access"],
@@ -247,7 +251,7 @@ export const roomsDummyData = [
     },
     {
         "_id": "67f76452197ac559e4089b8e",
-        "hotel": hotelDummyData,
+        "hotel": { ...hotelDummyData, name: "Lake Palace Heritage", city: "Udaipur" },
         "roomType": "Luxury Room",
         "pricePerNight": 4999,
         "amenities": ["Room Service", "Free Breakfast", "Pool Access"],
@@ -259,7 +263,7 @@ export const roomsDummyData = [
     },
     {
         "_id": "67f76406197ac559e4089b82",
-        "hotel": hotelDummyData,
+        "hotel": { ...hotelDummyData, name: "Marine Drive Inn", city: "Mumbai" },
         "roomType": "Single Bed",
         "pricePerNight": 1299,
         "amenities": ["Free Wi-Fi", "Free Breakfast", "Room Service"],
@@ -271,7 +275,7 @@ export const roomsDummyData = [
     },
     {
         "_id": "67f763d8197ac559e4089b7a",
-        "hotel": hotelDummyData,
+        "hotel": { ...hotelDummyData, name: "Snow Peak Chalet", city: "Manali" },
         "roomType": "Family Suite",
         "pricePerNight": 7499,
         "amenities": ["Free Wi-Fi", "Room Service", "Pool Access"],
@@ -280,7 +284,151 @@ export const roomsDummyData = [
         "createdAt": "2025-04-10T06:23:20.252Z",
         "updatedAt": "2025-04-10T06:23:20.252Z",
         "__v": 0
-    }
+    },
+    {
+        "_id": "68a00001197ac559e4089c01",
+        "hotel": { ...hotelDummyData, name: "Amber Fort Residency", city: "Jaipur" },
+        "roomType": "Luxury Room",
+        "pricePerNight": 3799,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Room Service", "Pool Access"],
+        "images": [cx("yoyo/rooms/jaipur_1"), cx("yoyo/rooms/jaipur_2"), cx("yoyo/rooms/jaipur_3"), cx("yoyo/rooms/jaipur_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-01T08:00:00.000Z",
+        "updatedAt": "2025-05-01T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00002197ac559e4089c02",
+        "hotel": { ...hotelDummyData, name: "Silicon Garden Hotel", city: "Bengaluru" },
+        "roomType": "Double Bed",
+        "pricePerNight": 2199,
+        "amenities": ["Free Wi-Fi", "Room Service", "Free Breakfast"],
+        "images": [cx("yoyo/rooms/bengaluru_1"), cx("yoyo/rooms/bengaluru_2"), cx("yoyo/rooms/bengaluru_3"), cx("yoyo/rooms/bengaluru_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-02T08:00:00.000Z",
+        "updatedAt": "2025-05-02T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00003197ac559e4089c03",
+        "hotel": { ...hotelDummyData, name: "Charminar Grand", city: "Hyderabad" },
+        "roomType": "Family Suite",
+        "pricePerNight": 5499,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Pool Access", "Mountain View"],
+        "images": [cx("yoyo/rooms/hyderabad_1"), cx("yoyo/rooms/hyderabad_2"), cx("yoyo/rooms/hyderabad_3"), cx("yoyo/rooms/hyderabad_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-03T08:00:00.000Z",
+        "updatedAt": "2025-05-03T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00004197ac559e4089c04",
+        "hotel": { ...hotelDummyData, name: "Backwater Retreat", city: "Kochi" },
+        "roomType": "Single Bed",
+        "pricePerNight": 1799,
+        "amenities": ["Free Wi-Fi", "Room Service", "Pool Access"],
+        "images": [cx("yoyo/rooms/kochi_1"), cx("yoyo/rooms/kochi_2"), cx("yoyo/rooms/kochi_3"), cx("yoyo/rooms/kochi_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-04T08:00:00.000Z",
+        "updatedAt": "2025-05-04T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00005197ac559e4089c05",
+        "hotel": { ...hotelDummyData, name: "Ganges View Haveli", city: "Varanasi" },
+        "roomType": "Double Bed",
+        "pricePerNight": 2899,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Mountain View"],
+        "images": [cx("yoyo/rooms/varanasi_1"), cx("yoyo/rooms/varanasi_2"), cx("yoyo/rooms/varanasi_3"), cx("yoyo/rooms/varanasi_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-05T08:00:00.000Z",
+        "updatedAt": "2025-05-05T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00006197ac559e4089c06",
+        "hotel": { ...hotelDummyData, name: "Taj Corridor Suites", city: "Agra" },
+        "roomType": "Luxury Room",
+        "pricePerNight": 6299,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Pool Access", "Room Service"],
+        "images": [cx("yoyo/rooms/agra_1"), cx("yoyo/rooms/agra_2"), cx("yoyo/rooms/agra_3"), cx("yoyo/rooms/agra_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-06T08:00:00.000Z",
+        "updatedAt": "2025-05-06T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00007197ac559e4089c07",
+        "hotel": { ...hotelDummyData, name: "Himalayan Nest Shimla", city: "Shimla" },
+        "roomType": "Family Suite",
+        "pricePerNight": 4299,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Mountain View", "Room Service"],
+        "images": [cx("yoyo/rooms/shimla_1"), cx("yoyo/rooms/shimla_2"), cx("yoyo/rooms/shimla_3"), cx("yoyo/rooms/shimla_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-07T08:00:00.000Z",
+        "updatedAt": "2025-05-07T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00008197ac559e4089c08",
+        "hotel": { ...hotelDummyData, name: "Riverside Cottage Rishikesh", city: "Rishikesh" },
+        "roomType": "Double Bed",
+        "pricePerNight": 1999,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Mountain View"],
+        "images": [cx("yoyo/rooms/rishikesh_1"), cx("yoyo/rooms/rishikesh_2"), cx("yoyo/rooms/rishikesh_3"), cx("yoyo/rooms/rishikesh_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-08T08:00:00.000Z",
+        "updatedAt": "2025-05-08T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a00009197ac559e4089c09",
+        "hotel": { ...hotelDummyData, name: "Cyber City Business Hotel", city: "Delhi" },
+        "roomType": "Single Bed",
+        "pricePerNight": 999,
+        "amenities": ["Free Wi-Fi", "Room Service"],
+        "images": [cx("yoyo/rooms/delhi_1"), cx("yoyo/rooms/delhi_2"), cx("yoyo/rooms/delhi_3"), cx("yoyo/rooms/delhi_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-09T08:00:00.000Z",
+        "updatedAt": "2025-05-09T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a0000a197ac559e4089c0a",
+        "hotel": { ...hotelDummyData, name: "Nilgiri Mist Resort", city: "Ooty" },
+        "roomType": "Luxury Room",
+        "pricePerNight": 5899,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Pool Access", "Mountain View", "Room Service"],
+        "images": [cx("yoyo/rooms/ooty_1"), cx("yoyo/rooms/ooty_2"), cx("yoyo/rooms/ooty_3"), cx("yoyo/rooms/ooty_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-10T08:00:00.000Z",
+        "updatedAt": "2025-05-10T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a0000b197ac559e4089c0b",
+        "hotel": { ...hotelDummyData, name: "Coorg Plantation Stay", city: "Coorg" },
+        "roomType": "Family Suite",
+        "pricePerNight": 8999,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Pool Access", "Mountain View"],
+        "images": [cx("yoyo/rooms/coorg_1"), cx("yoyo/rooms/coorg_2"), cx("yoyo/rooms/coorg_3"), cx("yoyo/rooms/coorg_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-11T08:00:00.000Z",
+        "updatedAt": "2025-05-11T08:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68a0000c197ac559e4089c0c",
+        "hotel": { ...hotelDummyData, name: "Darjeeling Tea Estate Lodge", city: "Darjeeling" },
+        "roomType": "Double Bed",
+        "pricePerNight": 3299,
+        "amenities": ["Free Wi-Fi", "Free Breakfast", "Mountain View"],
+        "images": [cx("yoyo/rooms/darjeeling_1"), cx("yoyo/rooms/darjeeling_2"), cx("yoyo/rooms/darjeeling_3"), cx("yoyo/rooms/darjeeling_4")],
+        "isAvailable": true,
+        "createdAt": "2025-05-12T08:00:00.000Z",
+        "updatedAt": "2025-05-12T08:00:00.000Z",
+        "__v": 0
+    },
 ]
 
 
@@ -334,13 +482,45 @@ export const userBookingsDummyData = [
         "createdAt": "2025-04-10T06:41:20.501Z",
         "updatedAt": "2025-04-10T06:41:20.501Z",
         "__v": 0
+    },
+    {
+        "_id": "68b00001994a731e97d3b9a1",
+        "user": userDummyData,
+        "room": roomsDummyData[4],
+        "hotel": roomsDummyData[4].hotel,
+        "checkInDate": "2025-06-15T00:00:00.000Z",
+        "checkOutDate": "2025-06-18T00:00:00.000Z",
+        "totalPrice": 11397,
+        "guests": 2,
+        "status": "confirmed",
+        "paymentMethod": "Stripe",
+        "isPaid": true,
+        "createdAt": "2025-05-20T10:00:00.000Z",
+        "updatedAt": "2025-05-20T10:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "68b00002994a731e97d3b9a2",
+        "user": userDummyData,
+        "room": roomsDummyData[6],
+        "hotel": roomsDummyData[6].hotel,
+        "checkInDate": "2025-07-04T00:00:00.000Z",
+        "checkOutDate": "2025-07-07T00:00:00.000Z",
+        "totalPrice": 16497,
+        "guests": 3,
+        "status": "confirmed",
+        "paymentMethod": "Pay At Hotel",
+        "isPaid": false,
+        "createdAt": "2025-06-01T09:00:00.000Z",
+        "updatedAt": "2025-06-01T09:00:00.000Z",
+        "__v": 0
     }
 ]
 
 // Dashboard Dummy Data
 export const dashboardDummyData = {
-    "totalBookings": 3,
-    "totalRevenue": 897,
+    "totalBookings": 5,
+    "totalRevenue": 28789,
     "bookings": userBookingsDummyData
 }
 
