@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
+import Logo from './Logo';
 
 // ── Maya avatar SVG (Namaste pose, inspired by Air India Tia) ────
 const MayaAvatar = ({ size = 48, className = '' }) => (
@@ -263,12 +264,9 @@ const MayaChatbot = () => {
               className="flex items-center gap-2 px-3 py-3 flex-shrink-0 border-t"
               style={{ borderColor: 'var(--color-border)' }}
             >
-              {/* YoYo logo pill */}
-              <div
-                className="flex-shrink-0 flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black text-white"
-                style={{ background: '#E8003D', fontSize: '10px', letterSpacing: '-0.03em' }}
-              >
-                YoYo
+              {/* YoYo brand logo */}
+              <div className="flex-shrink-0 flex items-center justify-center">
+                <Logo size="sm" iconOnly />
               </div>
 
               <input

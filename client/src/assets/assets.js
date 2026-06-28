@@ -5,7 +5,6 @@ const cld = (publicId, w = 800) =>
   `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_auto,w_${w}/${publicId}`;
 
 // ─── SVG icons (tiny — fine to bundle locally) ────────────────
-import logo from './logo.svg'
 import searchIcon from './searchIcon.svg'
 import userIcon from './userIcon.svg'
 import calenderIcon from './calenderIcon.svg'
@@ -51,7 +50,6 @@ const offerImg3  = cld("yoyo/assets/offer_3",      600);
 
 
 export const assets = {
-    logo,
     searchIcon,
     userIcon,
     calenderIcon,

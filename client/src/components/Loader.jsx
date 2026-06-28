@@ -20,9 +20,14 @@ const Loader = () => {
       >
         {/* Simplified YoYo logo mark */}
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="32" fill="#FF385C"/>
-          <path d="M12 14 L22 30 L22 46 L28 46 L28 30 L38 14 L30 14 L25 24 L20 14Z" fill="white"/>
-          <path d="M30 14 L40 30 L40 46 L46 46 L46 30 L56 14 L48 14 L43 24 L38 14Z" fill="white" opacity="0.7"/>
+          <circle cx="32" cy="32" r="32" fill="url(#brandGrad)"/>
+          <defs>
+            <linearGradient id="brandGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#E8003D"/>
+              <stop offset="1" stopColor="#C50030"/>
+            </linearGradient>
+          </defs>
+          <text x="32" y="44" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="40" fill="white">Y</text>
         </svg>
       </motion.div>
 

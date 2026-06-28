@@ -1,8 +1,0 @@
-<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="24" cy="24" r="24" fill="#FF385C"/>
-  <!-- Double-Y mark: left Y -->
-  <path d="M8 10 L15 22 L15 32 L19 32 L19 22 L26 10 L22 10 L17 19 L12 10 Z" fill="white"/>
-  <!-- Double-Y mark: right Y -->
-  <path d="M22 10 L29 22 L29 32 L33 32 L33 22 L40 10 L36 10 L31 19 L26 10 Z" fill="white" opacity="0.85"/>
-</svg>

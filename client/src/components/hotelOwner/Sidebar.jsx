@@ -1,16 +1,5 @@
 import { NavLink } from 'react-router-dom';
-
-// ── OYO-style logo (compact) ─────────────────────────────────
-const YoYoLogo = () => (
-  <div className="inline-flex items-center justify-center select-none"
-    style={{ background: "#E8003D", borderRadius: "7px", padding: "4px 10px" }}>
-    <span style={{
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-      fontWeight: 900, fontSize: "18px",
-      color: "#FFFFFF", letterSpacing: "-0.04em", lineHeight: 1,
-    }}>YoYo</span>
-  </div>
-);
+import Logo from '../Logo';
 
 const DashIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
@@ -52,7 +41,7 @@ const Sidebar = () => (
   >
     {/* Logo — desktop only */}
     <div className="hidden md:flex px-5 py-4 mb-2">
-      <YoYoLogo />
+      <Logo size="sm" />
     </div>
 
     <nav className="flex flex-col gap-1 px-2">
