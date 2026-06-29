@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { testimonials } from "../assets/assets";
 import StarRating from "./StarRating";
 
+
 const TOTAL = testimonials.length;
 
-// Static card — no animation
+// Static card — no animation (used after initial reveal)
 const CardContent = ({ t }) => (
-  <div
-    className="flex flex-col justify-between rounded-2xl p-6 h-full"
+  <motion.div
+    className="flex flex-col justify-between rounded-2xl p-6 h-full cursor-default"
     style={{ background: "var(--color-surface-2)", boxShadow: "var(--shadow-md)" }}
+    whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.18)" }}
+    transition={{ duration: 0.22, ease: [0.34, 1.56, 0.64, 1] }}
   >
     <div>
       <div className="text-5xl font-serif leading-none mb-2"
@@ -32,15 +35,24 @@ const CardContent = ({ t }) => (
         <StarRating rating={t.rating} />
       </div>
     </div>
-  </div>
+  </motion.div>
 );
+
 
 const Testimonial = () => {
   const [startIdx,  setStartIdx]  = useState(0);
-  const [direction, setDirection] = useState(1);   // 1 = next, -1 = prev
-  const [animKey,   setAnimKey]   = useState(0);   // bumped to re-trigger animation
-  const [animCol,   setAnimCol]   = useState(null); // which column (0/1/2) is new
-  const timerRef = useRef(null);
+  const [direction, setDirection] = useState(1);
+  const [animKey,   setAnimKey]   = useState(0);
+  const [animCol,   setAnimCol]   = useState(null);
+  const timerRef    = useRef(null);
+  const sectionRef  = useRef(null);
+  const hasRevealed = useRef(false);
+
+  // useInView: fires once when the grid enters the viewport
+  const isInView = useInView(sectionRef, { once: true, margin: "-80px" });
+
+  // After first reveal, mark it done so carousel advances don't re-trigger it
+  useEffect(() => { if (isInView) hasRevealed.current = true; }, [isInView]);
 
   // Build 3 visible cards from the window
   const visible = [0, 1, 2].map(i => testimonials[(startIdx + i) % TOTAL]);
@@ -80,16 +92,32 @@ const Testimonial = () => {
         </h2>
       </motion.div>
 
-      <div className="relative max-w-6xl mx-auto">
+      <div ref={sectionRef} className="relative max-w-6xl mx-auto">
 
-        {/* 3-column grid — only ONE column re-animates each time */}
+        {/* 3-column grid — scroll-reveal on entry, then only ONE column re-animates per advance */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {visible.map((t, colIdx) => {
             const isNew = colIdx === animCol;
+
+            // On first scroll-into-view: staggered fade-up for all 3 cards
+            if (!hasRevealed.current) {
+              return (
+                <motion.div
+                  key={`reveal-${colIdx}`}
+                  initial={{ opacity: 0, y: 36 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 36 }}
+                  transition={{ duration: 0.52, delay: colIdx * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                  className="min-h-[220px]"
+                >
+                  <CardContent t={t} />
+                </motion.div>
+              );
+            }
+
+            // After reveal: normal carousel single-card fade
             return (
               <div key={colIdx} className="min-h-[220px]">
                 {isNew ? (
-                  // Only this one column gets the enter animation
                   <motion.div
                     key={animKey}
                     initial={{ opacity: 0, x: direction > 0 ? 70 : -70 }}
@@ -100,7 +128,6 @@ const Testimonial = () => {
                     <CardContent t={t} />
                   </motion.div>
                 ) : (
-                  // Other 2 columns: completely static, no animation at all
                   <CardContent t={t} />
                 )}
               </div>
