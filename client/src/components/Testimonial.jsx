@@ -3,18 +3,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { testimonials } from "../assets/assets";
 import StarRating from "./StarRating";
 
-const VISIBLE = 3; // cards shown at once
+const VISIBLE = 3;
+const TOTAL   = testimonials.length;
 
-const TestimonialCard = ({ t, index }) => (
+const cardVariants = {
+  enter:  (dir) => ({ opacity: 0, x: dir > 0 ? 80 : -80 }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } },
+  exit:   (dir) => ({ opacity: 0, x: dir > 0 ? -80 : 80, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }),
+};
+
+const TestimonialCard = ({ t, dir }) => (
   <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -12 }}
-    transition={{ duration: 0.4, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+    key={t.id}
+    custom={dir}
+    variants={cardVariants}
+    initial="enter"
+    animate="center"
+    exit="exit"
     className="flex flex-col justify-between rounded-2xl p-6 h-full"
     style={{ background: "var(--color-surface-2)", boxShadow: "var(--shadow-md)" }}
   >
-    {/* Quote */}
+    {/* Quote mark */}
     <div>
       <div
         className="text-5xl font-serif leading-none mb-2"
@@ -54,25 +63,31 @@ const TestimonialCard = ({ t, index }) => (
 );
 
 const Testimonial = () => {
-  const total    = testimonials.length;
-  const [current, setCurrent] = useState(0);
+  const [current,   setCurrent]   = useState(0);
+  const [direction, setDirection] = useState(1);
   const timerRef = useRef(null);
 
   const resetTimer = () => {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setCurrent((c) => (c + 1) % total);
-    }, 4000);
+      setDirection(1);
+      setCurrent((c) => (c + 1) % TOTAL);
+    }, 4500);
   };
 
-  const go = (idx) => { setCurrent((idx + total) % total); resetTimer(); };
-  const prev = () => go(current - 1);
-  const next = () => go(current + 1);
+  const go = (idx, dir) => {
+    setDirection(dir);
+    setCurrent((idx + TOTAL) % TOTAL);
+    resetTimer();
+  };
 
-  useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current); }, [total]);
+  const prev = () => go(current - 1, -1);
+  const next = () => go(current + 1,  1);
 
-  // Build the 3 visible items wrapping around the list
-  const visible = Array.from({ length: VISIBLE }, (_, i) => testimonials[(current + i) % total]);
+  useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current); }, []);
+
+  // 3 visible cards — only their keys change, so only entering/exiting card animates
+  const visible = Array.from({ length: VISIBLE }, (_, i) => testimonials[(current + i) % TOTAL]);
 
   return (
     <section className="py-16 px-4 md:px-16 lg:px-24 xl:px-32">
@@ -92,15 +107,20 @@ const Testimonial = () => {
         </h2>
       </motion.div>
 
-      {/* Cards */}
+      {/* Cards grid */}
       <div className="relative max-w-6xl mx-auto">
-        <AnimatePresence mode="wait">
-          <div key={current} className="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[240px]">
-            {visible.map((t, i) => (
-              <TestimonialCard key={`${current}-${i}`} t={t} index={i} />
-            ))}
-          </div>
-        </AnimatePresence>
+
+        {/* The 3-column grid — overflow hidden so exiting card doesn't spill */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden">
+          {visible.map((t, colIdx) => (
+            // Each column is a fixed-height slot; AnimatePresence swaps one card at a time
+            <div key={colIdx} className="relative min-h-[220px]">
+              <AnimatePresence mode="wait" custom={direction} initial={false}>
+                <TestimonialCard key={t.id} t={t} dir={direction} />
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
 
         {/* Arrows */}
         <button
@@ -124,12 +144,12 @@ const Testimonial = () => {
           </svg>
         </button>
 
-        {/* Dots — one per testimonial */}
+        {/* Dots */}
         <div className="flex justify-center gap-2 mt-6">
           {testimonials.map((_, i) => (
             <button
               key={i}
-              onClick={() => go(i)}
+              onClick={() => go(i, i > current ? 1 : -1)}
               className="rounded-full transition-all duration-300"
               style={{
                 width:  i === current ? 20 : 7,
