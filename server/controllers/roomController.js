@@ -34,9 +34,19 @@ export const createRoom = async (req, res) => {
 // ── GET /api/rooms/  (public) ─────────────────────────────────
 export const getRooms = async (req, res) => {
     try {
-        const rooms = await Room.find({ isAvailable: true, isDeleted: { $ne: true } })
-            .populate({ path: 'hotel', populate: { path: 'owner', select: 'image username' } })
-            .sort({ createdAt: -1 });
+        const allRooms = await Room.find({ isAvailable: true, isDeleted: { $ne: true } })
+            .populate({
+                path:    'hotel',
+                options: { strictPopulate: false },
+                populate: { path: 'owner', select: 'image username', options: { strictPopulate: false } },
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Filter out any rooms whose hotel or hotel.owner failed to resolve
+        // (can happen when legacy Clerk-format owner IDs remain in the DB)
+        const rooms = allRooms.filter(r => r.hotel && r.hotel._id);
+
         ok(res, { rooms });
     } catch (error) {
         fail(res, error.message);

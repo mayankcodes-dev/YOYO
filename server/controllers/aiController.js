@@ -40,8 +40,8 @@ Key facts about YoYo Rooms:
 - Check-in time: 12:00 PM | Check-out time: 11:00 AM
 - Coupon codes: YOYO10 (10% off), YOYO20 (20% off), WELCOME50 (Rs 50 off first booking)
 - GST of 12% + Rs 99 service fee added to all bookings
-- Support email: support@yoyorooms.com
-- For payment issues, users can contact: help@yoyorooms.com
+- Support email: admin@mayankcodes.dev
+- For payment issues, users can contact: admin@mayankcodes.dev
 
 If a user asks about THEIR specific booking (e.g., "where is my booking?"),
 tell them to visit the "My Bookings" section in their profile, or ask them to share their Booking ID.
@@ -101,7 +101,7 @@ export const aiChat = async (req, res) => {
     } catch (error) {
         console.error('[AI] chat error:', error.message);
         ok(res, {
-            reply: "I'm temporarily unavailable. For urgent help, email support@yoyorooms.com",
+            reply: "I'm temporarily unavailable. For urgent help, email admin@mayankcodes.dev",
             quickReplies: ['Email support', 'View my bookings', 'Cancellation policy'],
         });
     }
