@@ -27,7 +27,7 @@ const Logo = ({ size = "md", iconOnly = false }) => {
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 900,
             fontSize: fontSizes[size] || fontSizes.md,
-            color: "var(--color-text, #0d0d1a)",
+            color: "#ffffff",
             letterSpacing: "-0.04em",
             lineHeight: 1,
           }}
