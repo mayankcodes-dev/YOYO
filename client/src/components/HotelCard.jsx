@@ -63,7 +63,7 @@ const HotelCard = ({ room, index }) => {
           style={{ background: "linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 60%)" }}
         />
 
-        {/* Badges */}
+        {/* Badges — Best Seller only on image. Category lives in card body. */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5" aria-hidden="true">
           {isBestSeller && (
             <motion.span
@@ -73,21 +73,19 @@ const HotelCard = ({ room, index }) => {
               className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white"
               style={{ background: "var(--color-primary)", boxShadow: "0 2px 8px rgba(232,0,61,0.45)" }}
             >
-              🏆 Best Seller
-            </motion.span>
-          )}
-          {room.category && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: (index % 4) * 0.09 + 0.32, duration: 0.4 }}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-white backdrop-blur-sm"
-              style={{ background: "rgba(0,0,0,0.55)" }}
-            >
-              {room.category}
+              ✦ Best Seller
             </motion.span>
           )}
         </div>
+
+        {/* Glass shimmer overlay on hover — premium depth effect */}
+        <div
+          className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 60%)",
+          }}
+          aria-hidden="true"
+        />
 
         {/* Wishlist heart */}
         <motion.button
@@ -135,7 +133,7 @@ const HotelCard = ({ room, index }) => {
       {/* Content */}
       <div className="p-6 flex flex-col flex-1 gap-4">
 
-        {/* Room type tag */}
+        {/* Room type tag — single, no duplicate category */}
         <div className="flex items-center gap-2">
           <span
             className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"

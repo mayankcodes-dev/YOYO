@@ -3,6 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ─── Avatar dropdown ──────────────────────────────────────────
 const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
@@ -228,12 +232,32 @@ const Navbar = () => {
   const location = useLocation();
   const { user, darkMode, toggleDarkMode, logout, navigate, isOwner, setShowHotelReg } = useAppContext();
   const [scrolled, setScrolled] = useState(false);
+  const progressBarRef = useRef(null);
   const isActive = p => p === "/" ? location.pathname === "/" : location.pathname.startsWith(p);
 
+  // Scroll-based background opacity (existing)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // GSAP scroll progress bar — GPU-safe scaleX transform
+  useEffect(() => {
+    if (!progressBarRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.to(progressBarRef.current, {
+        scaleX: 1,
+        ease: "none",
+        scrollTrigger: {
+          trigger: document.documentElement,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.3,
+        },
+      });
+    });
+    return () => ctx.revert();
   }, []);
 
   const links = [
@@ -244,6 +268,22 @@ const Navbar = () => {
 
   return (
     <>
+      {/* ── Scroll progress bar — GSAP scrub ─────────────────── */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[60] h-[2px] pointer-events-none"
+        aria-hidden="true"
+      >
+        <div
+          ref={progressBarRef}
+          className="h-full origin-left"
+          style={{
+            background: "linear-gradient(90deg, var(--color-primary), var(--color-accent))",
+            scaleX: 0,
+            willChange: "transform",
+          }}
+        />
+      </div>
+
       {/* ── Desktop floating navbar ───────────────────────────── */}
       <div
         className="fixed top-0 left-0 right-0 z-50 flex justify-center"

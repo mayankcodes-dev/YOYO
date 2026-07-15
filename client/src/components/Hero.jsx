@@ -13,16 +13,16 @@ const HERO_VIDEO_ALT = "https://res.cloudinary.com/dgqgzmzed/video/upload/v17826
 const FALLBACK_POSTER = `https://res.cloudinary.com/${CLOUD}/image/upload/f_auto,q_auto,w_1920,h_1080,c_fill,g_auto/yoyo/assets/hero_image`;
 
 const trustBadges = [
-  { icon: "🏨", label: "10,000+", sub: "Hotels" },
-  { icon: "😊", label: "1M+",     sub: "Guests" },
-  { icon: "⚡", label: "Instant", sub: "Booking" },
-  { icon: "💰", label: "Best",    sub: "Prices" },
-  { icon: "⭐", label: "4.8/5",   sub: "Rated" },
-  { icon: "🛡️", label: "100%",   sub: "Secure" },
+  { label: "10,000+", sub: "Hotels" },
+  { label: "1M+",     sub: "Guests" },
+  { label: "Instant", sub: "Booking" },
+  { label: "Best",    sub: "Prices" },
+  { label: "4.8/5",   sub: "Rated" },
+  { label: "100%",    sub: "Secure" },
 ];
 
 // ── Input field wrapper
-const SearchField = ({ label, icon, borderRight = true, children }) => (
+const SearchField = ({ label, borderRight = true, children }) => (
   <div
     className="flex flex-col px-5 py-4"
     style={{
@@ -33,9 +33,9 @@ const SearchField = ({ label, icon, borderRight = true, children }) => (
   >
     <label
       className="text-[10px] font-black uppercase tracking-widest mb-1"
-      style={{ color: "#E8003D" }}
+      style={{ color: "var(--color-primary)" }}
     >
-      {icon} {label}
+      {label}
     </label>
     {children}
   </div>
@@ -43,7 +43,7 @@ const SearchField = ({ label, icon, borderRight = true, children }) => (
 
 // ── Guests stepper
 const GuestsField = ({ guests, setGuests }) => (
-  <SearchField label="Guests" icon="👤" borderRight>
+  <SearchField label="Guests" borderRight>
     <div className="flex items-center gap-2">
       <motion.button
         type="button"
@@ -51,7 +51,7 @@ const GuestsField = ({ guests, setGuests }) => (
         whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.88 }}
         className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold"
-        style={{ color: "#E8003D", border: "1px solid rgba(232,0,61,0.3)", background: "rgba(232,0,61,0.06)" }}
+        style={{ color: "var(--color-primary)", border: "1px solid rgba(232,0,61,0.3)", background: "rgba(232,0,61,0.06)" }}
       >−</motion.button>
       <AnimatePresence mode="wait">
         <motion.span
@@ -71,7 +71,7 @@ const GuestsField = ({ guests, setGuests }) => (
         whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.88 }}
         className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold"
-        style={{ color: "#E8003D", border: "1px solid rgba(232,0,61,0.3)", background: "rgba(232,0,61,0.06)" }}
+        style={{ color: "var(--color-primary)", border: "1px solid rgba(232,0,61,0.3)", background: "rgba(232,0,61,0.06)" }}
       >+</motion.button>
     </div>
   </SearchField>
@@ -347,12 +347,11 @@ const Hero = () => {
           {trustBadges.map((b, i) => (
             <motion.div
               key={i}
-              className="flex items-center gap-2 px-4"
+              className="flex items-center px-4"
               style={{ borderRight: i < trustBadges.length - 1 ? "1px solid rgba(255,255,255,0.12)" : "none" }}
               whileHover={{ scale: 1.06 }}
               transition={{ type: "spring", stiffness: 400 }}
             >
-              <span className="text-base leading-none">{b.icon}</span>
               <div className="text-left">
                 <div className="text-xs font-extrabold text-white leading-none">{b.label}</div>
                 <div className="text-[10px] leading-none mt-0.5" style={{ color: "rgba(255,255,255,0.50)" }}>{b.sub}</div>

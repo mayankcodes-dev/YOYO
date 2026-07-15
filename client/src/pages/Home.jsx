@@ -15,11 +15,34 @@ import HowItWorks from "../components/HowItWorks";
 import { motion, useInView, useMotionValue, useSpring, animate } from "framer-motion";
 import { useMemo } from "react";
 
+const STAT_ICONS = {
+  hotels: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6" aria-hidden="true">
+      <path d="M3 21h18M3 7l9-4 9 4M4 21V7M20 21V7M9 21v-4a3 3 0 016 0v4"/>
+    </svg>
+  ),
+  guests: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  ),
+  cities: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6" aria-hidden="true">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  ),
+  price: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6" aria-hidden="true">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
+    </svg>
+  ),
+};
+
 const STATS = [
-  { icon: "🏨", value: "10000", display: "10,000+", label: "Hotels Across India" },
-  { icon: "😊", value: "1000000", display: "1M+",    label: "Happy Guests" },
-  { icon: "🏙️", value: "200",    display: "200+",   label: "Cities Covered" },
-  { icon: "💰", value: "500",    display: "₹500",   label: "Starting per Night" },
+  { iconKey: "hotels", display: "10,000+", label: "Hotels Across India" },
+  { iconKey: "guests", display: "1M+",     label: "Happy Guests" },
+  { iconKey: "cities", display: "200+",    label: "Cities Covered" },
+  { iconKey: "price",  display: "₹500",   label: "Starting per Night" },
 ];
 
 // ── Animated counting number ─────────────────────────────────
@@ -66,24 +89,29 @@ const StatCard = ({ s, i }) => {
         border: "1px solid var(--color-border)",
         transition: "border-color 0.2s, box-shadow 0.2s",
       }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = "var(--color-border-strong)"}
+      onMouseEnter={e => e.currentTarget.style.borderColor = "var(--color-primary-light)"}
       onMouseLeave={e => e.currentTarget.style.borderColor = "var(--color-border)"}
     >
+      {/* Icon circle */}
       <motion.div
-        className="text-3xl mb-2"
+        className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        style={{
+          background: "var(--color-primary-light)",
+          color: "var(--color-primary)",
+        }}
         animate={inView ? { scale: [0.8, 1.15, 1] } : {}}
         transition={{ duration: 0.5, delay: i * 0.08 + 0.1 }}
       >
-        {s.icon}
+        {STAT_ICONS[s.iconKey]}
       </motion.div>
       <div
-        className="font-display font-black text-xl"
+        className="font-display font-black text-2xl"
         style={{ color: "var(--color-primary)" }}
       >
         <CountUp display={s.display} inView={inView} />
       </div>
       <div
-        className="text-xs mt-1"
+        className="text-xs mt-1 font-medium"
         style={{ color: "var(--color-text-secondary)" }}
       >
         {s.label}

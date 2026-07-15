@@ -117,7 +117,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   background: var(--color-surface);
   color: var(--color-text-primary);
   transition: background 0.3s ease, color 0.3s ease;
@@ -333,6 +333,75 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Branded gradient text — vibrant red → amber, no purple */
+.text-gradient-brand {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #FF6B6B 60%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   SCROLL-REVEAL — CSS-native (no JS) via animation-timeline
+   Usage: add .reveal-up / .reveal-left / .reveal-scale class
+   to any element. It will animate in as it enters the viewport.
+   Falls back to visible for browsers without scroll-timeline.
+   ============================================================ */
+
+@keyframes reveal-from-bottom {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes reveal-from-left {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes reveal-from-right {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes reveal-from-scale {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@supports (animation-timeline: view()) {
+  .reveal-up {
+    animation: reveal-from-bottom 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  .reveal-left {
+    animation: reveal-from-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  .reveal-right {
+    animation: reveal-from-right 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  .reveal-scale {
+    animation: reveal-from-scale 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  /* Stagger helpers for child elements */
+  .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .reveal-stagger > *:nth-child(2) { animation-delay: 80ms; }
+  .reveal-stagger > *:nth-child(3) { animation-delay: 160ms; }
+  .reveal-stagger > *:nth-child(4) { animation-delay: 240ms; }
+  .reveal-stagger > *:nth-child(5) { animation-delay: 320ms; }
+  .reveal-stagger > *:nth-child(6) { animation-delay: 400ms; }
 }
 
 .red-glow {
@@ -656,8 +725,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .animate-bounce-in,
   .animate-count-in,
   .animate-breath,
-  .shimmer-bar {
+  .shimmer-bar,
+  .reveal-up,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
     transition: none !important;
   }
+}
+
+/* ============================================================
+   PREMIUM SURFACE — subtle noise texture via pseudo-element
+   Add .noise-surface to any container for a premium feel
+   ============================================================ */
+.noise-surface {
+  position: relative;
+  isolation: isolate;
+}
+
+.noise-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
 }

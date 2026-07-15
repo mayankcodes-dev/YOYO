@@ -31,8 +31,12 @@ const NewsLetter = () => {
           style={{ background: "#FFFFFF", transform: "translate(-30%, 30%)" }} />
 
         <div className="relative z-10">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 bg-white/20 text-white">
-            📬 Stay in the Loop
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-4 bg-white/20 text-white">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+            Stay in the Loop
           </span>
           <h2 className="font-display text-2xl md:text-4xl font-extrabold text-white mb-3">
             Get Exclusive Deals in Your Inbox
@@ -47,7 +51,10 @@ const NewsLetter = () => {
               animate={{ scale: 1, opacity: 1 }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-green-600 font-bold text-sm"
             >
-              ✅ You&apos;re on the list! Welcome to YoYo.
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green-500" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+              </svg>
+              You&apos;re on the list! Welcome to YoYo.
             </motion.div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
