@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useLocation, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { assets, roomCommonData } from "../assets/assets";
 import StarRating from "../components/StarRating";
@@ -50,16 +50,18 @@ const RoomDetailSkeleton = () => (
 const RoomDetails = () => {
   const { id } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { rooms, axios, getToken, navigate, currency, user } = useAppContext();
   const [room,         setRoom]         = useState(null);
   const [mainImage,    setMainImage]    = useState(null);
-  const [checkInDate,  setCheckInDate]  = useState("");
-  const [checkOutDate, setCheckOutDate] = useState("");
-  const [guests,       setGuests]       = useState(1);
+  // Pre-populate from URL params so form state survives login redirect
+  const [checkInDate,  setCheckInDate]  = useState(searchParams.get('checkIn')  || "");
+  const [checkOutDate, setCheckOutDate] = useState(searchParams.get('checkOut') || "");
+  const [guests,       setGuests]       = useState(Number(searchParams.get('guests')) || 1);
   const [isAvailable,  setIsAvailable]  = useState(false);
   const [isChecking,   setIsChecking]   = useState(false);
   const [isBooking,    setIsBooking]    = useState(false);
-  const [paymentMethod,setPaymentMethod]= useState('pay at hotel'); // 'pay at hotel' | 'stripe'
+  const [paymentMethod,setPaymentMethod]= useState('pay at hotel');
 
   const today  = new Date().toISOString().split("T")[0];
   const nights = calcNights(checkInDate, checkOutDate);
@@ -78,7 +80,7 @@ const RoomDetails = () => {
       if (data.success) {
         setIsAvailable(data.isAvailable);
         data.isAvailable
-          ? toast.success("✅ Room is available for your dates!")
+          ? toast.success("Room is available for your dates!")
           : toast.error("Room is not available for these dates");
       } else {
         toast.error(data.message);
@@ -93,7 +95,17 @@ const RoomDetails = () => {
   // ── Book room ───────────────────────────────────────────────
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    if (!user) { toast.error("Please sign in to book"); navigate("/login", { state: { from: location.pathname + location.search } }); return; }
+    if (!user) {
+      toast.error("Please sign in to book");
+      // Encode form state into the return URL so it survives login redirect
+      const params = new URLSearchParams();
+      if (checkInDate)  params.set('checkIn',  checkInDate);
+      if (checkOutDate) params.set('checkOut', checkOutDate);
+      if (guests !== 1) params.set('guests',   guests);
+      const returnTo = `${location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+      navigate("/login", { state: { from: returnTo } });
+      return;
+    }
     if (!isAvailable) { return checkAvailability(); }
     setIsBooking(true);
     try {
@@ -118,7 +130,7 @@ const RoomDetails = () => {
             navigate('/my-bookings');
           }
         } else {
-          toast.success("🎉 Room booked! Pay at hotel on arrival.");
+          toast.success("Room booked! Pay at hotel on arrival.");
           navigate('/my-bookings');
           window.scrollTo(0, 0);
         }
@@ -483,8 +495,18 @@ const RoomDetails = () => {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { id: 'pay at hotel', label: '🏨 Pay at Hotel', sub: 'No charge now' },
-                      { id: 'stripe',       label: '💳 Pay Online',   sub: 'Instant confirm' },
+                      {
+                        id: 'pay at hotel',
+                        label: 'Pay at Hotel',
+                        sub: 'No charge now',
+                        icon: <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>,
+                      },
+                      {
+                        id: 'stripe',
+                        label: 'Pay Online',
+                        sub: 'Instant confirm',
+                        icon: <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd"/></svg>,
+                      },
                     ].map(opt => (
                       <button
                         key={opt.id}
@@ -497,8 +519,8 @@ const RoomDetails = () => {
                           color:        'var(--color-text-primary)',
                         }}
                       >
-                        <div className="font-semibold text-sm">{opt.label}</div>
-                        <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{opt.sub}</div>
+                        <div className="flex items-center gap-1.5 font-semibold text-sm mb-0.5">{opt.icon} {opt.label}</div>
+                        <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{opt.sub}</div>
                       </button>
                     ))}
                   </div>
@@ -522,7 +544,7 @@ const RoomDetails = () => {
                     {paymentMethod === 'stripe' ? 'Redirecting to payment…' : 'Booking…'}
                   </span>
                 ) : isAvailable ? (
-                  paymentMethod === 'stripe' ? '💳 Book & Pay Now' : '🎉 Book Now'
+                  paymentMethod === 'stripe' ? 'Book & Pay Now' : 'Book Now'
                 ) : 'Check Availability'}
               </button>
 
