@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
 
@@ -53,7 +54,9 @@ const UserProfile = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const fileRef = useRef();
 
-  if (!user) { navigate('/login'); return null; }
+  const location = useLocation();
+
+  if (!user) { navigate('/login', { state: { from: location.pathname } }); return null; }
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];

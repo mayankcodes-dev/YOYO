@@ -348,6 +348,7 @@ const Navbar = () => {
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                 <Link
                   to="/login"
+                  state={{ from: location.pathname }}
                   className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white"
                   style={{
                     background: "linear-gradient(135deg,#E8003D 0%,#B5002E 100%)",

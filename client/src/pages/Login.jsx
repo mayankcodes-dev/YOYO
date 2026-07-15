@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "react-hot-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import Logo from "../components/Logo";
 import GoogleIcon from "../components/GoogleIcon";
@@ -42,14 +42,24 @@ const Spinner = () => (
 );
 
 const Login = () => {
-  const { login, googleLogin, navigate, axios } = useAppContext();
+  const { login, googleLogin, navigate, axios, user } = useAppContext();
   const location = useLocation();
-  // Where to redirect after login — default to home
-  const from = location.state?.from || "/";
+  // Prevent redirect loops — never send back to an auth page
+  const rawFrom = location.state?.from || "/";
+  const AUTH_PATHS = ["/login", "/register"];
+  const from = AUTH_PATHS.includes(rawFrom) ? "/" : rawFrom;
 
   const [form,    setForm]    = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [gLoading,setGLoading]= useState(false);
+
+  // Redirect already-logged-in users (useEffect avoids hooks-order violation)
+  useEffect(() => {
+    if (user) navigate(from, { replace: true });
+  }, [user, from, navigate]);
+
+  // While redirect is pending, render nothing
+  if (user) return null;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -58,7 +68,7 @@ const Login = () => {
     setLoading(true);
     try {
       await login(sanitize(form.email), form.password);
-      toast.success("Welcome back! 👋");
+      toast.success("Welcome back!");
       navigate(from, { replace: true });
     } catch (err) {
       toast.error(err.message || "Login failed");
@@ -81,7 +91,7 @@ const Login = () => {
         );
         if (data.success) {
           await googleLogin(null, data);
-          toast.success(`Welcome, ${gUser.name}! 🎉`);
+          toast.success(`Welcome, ${gUser.name}!`);
           navigate(from, { replace: true });
         } else {
           toast.error(data.message || "Google login failed");
@@ -258,9 +268,10 @@ const Login = () => {
             className="text-center text-sm mt-8"
             style={{ color: "var(--color-text-muted)" }}
           >
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               to="/register"
+              state={{ from }}
               className="font-bold transition hover:opacity-80"
               style={{ color: "var(--color-primary)" }}
             >
