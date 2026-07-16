@@ -210,3 +210,52 @@ Never remove entries — append only.
 - ❌ Service worker cache can cause stale data issues in dev — always hard-refresh when testing
 
 **Impact:** `PWAInstallBanner.jsx` and `PWAUpdatePrompt.jsx` components handle install and update UX. `vite.config.js` includes PWA plugin config.
+
+---
+
+## ADR-011: Google OAuth Save Bug -- validateModifiedOnly + Abort-Safe syncUser
+
+**Date:** 2026-07-16
+
+**Problem:**
+Two compounding bugs caused auth and booking failures:
+1. Server crash in `googleAccess`: `user.save()` on an existing user failed because `password: { select: false }` caused Mongoose to require the field during validation. The subsequent `user._id.toString()` then threw `TypeError: Cannot read properties of undefined`.
+2. Client booking lockout: After Google login, `syncUser` fired a fast local request that completed before React cleanup, allowing a stale response (with an old/absent token) to invoke `clearSession()` via the Axios interceptor. The strict `if (!user)` guard in `RoomDetails.jsx` then redirected users to login even though a valid token was present.
+
+**Decision:**
+- Server: Use `user.save({ validateModifiedOnly: true })` whenever saving a partial document fetched without `select('+password')`. Add `user?._id` optional chaining before `toString()` calls.
+- Server: Always return `_id` from user data endpoints so the client can reconstruct a session object.
+- Client: Check `response.config?.signal?.aborted` in the Axios response interceptor before calling `clearSession()`.
+- Client: Check `controller.signal.aborted` in `syncUser` after the request resolves (not just on cancellation error) because fast local responses may arrive before React cleanup fires the abort.
+- Client: Change booking checkout guard from `if (!user)` to `if (!user && !token)` -- the presence of a valid token is sufficient to attempt a booking; the server validates the JWT authoritatively.
+
+**Tradeoffs:**
+- The `!user && !token` guard means a user with an expired token and no localStorage user object could reach the booking API and get a 401 from the server. This is acceptable -- the interceptor then clears the session and the user is redirected to login.
+- `validateModifiedOnly: true` means Mongoose only validates fields that were actually modified. Any required field that was not fetched and not modified is skipped. This is correct behavior for partial document updates.
+
+**Impact:**
+- `server/controllers/authController.js`: `_findOrCreateGoogleUser` + `googleAccess`
+- `server/controllers/userController.js`: `getUserData`
+- `client/src/context/AppContext.jsx`: interceptor + `syncUser`
+- `client/src/pages/RoomDetails.jsx`: `onSubmitHandler`
+
+
+---
+
+## ADR-012: Dynamic Localhost CORS & Check-In Reminder Cron Adjustment
+
+**Date:** 2026-07-16
+
+**Problem:**
+1. When the client Vite dev server drifts from port 5173 (e.g., to 5174 due to port occupancy), it triggers "CORS: Origin not allowed" errors from the Express backend, blocking all API requests including AI Search and Auth.
+2. The check-in reminder cron job was registered with the Asia/Kolkata timezone, but the cron expression was set to '30 2 * * *' (2:30 AM), meaning it would run at 2:30 AM IST instead of the intended 8:00 AM IST.
+
+**Decision:**
+- Express CORS & Socket.io: Added a `checkOrigin` helper in `server/server.js` to dynamically match any localhost (`http://localhost:*` or `http://127.0.0.1:*`) origins. This completely eliminates port occupancy/drift CORS issues locally.
+- Env Configuration: Added `http://localhost:5174` to `ALLOWED_ORIGINS` in `server/.env` for additional safety.
+- Cron Reminders: Updated the cron expression to `0 8 * * *` with `timezone: 'Asia/Kolkata'` in `server/jobs/scheduler.js` to ensure it runs exactly at 8:00 AM IST daily.
+
+**Impact:**
+- `server/server.js`: Added `checkOrigin` helper and configured both Express CORS and Socket.io to use it.
+- `server/.env`: Added `http://localhost:5174` to `ALLOWED_ORIGINS`.
+- `server/jobs/scheduler.js`: Fixed the check-in reminders cron expression to `0 8 * * *`.

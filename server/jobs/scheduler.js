@@ -116,8 +116,8 @@ export const startScheduler = () => {
     // Every 15 minutes: auto-cancel unpaid bookings
     cron.schedule('*/15 * * * *', autoCancelUnpaid);
 
-    // Every day at 8:00 AM IST = 2:30 AM UTC
-    cron.schedule('30 2 * * *', sendCheckInReminders, {
+    // Every day at 8:00 AM IST
+    cron.schedule('0 8 * * *', sendCheckInReminders, {
         timezone: 'Asia/Kolkata',
     });
 

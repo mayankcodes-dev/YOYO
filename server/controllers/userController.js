@@ -5,8 +5,8 @@ import { ok, fail } from '../utils/respond.js';
 // ── GET /api/user/  (protected) ───────────────────────────────
 export const getUserData = async (req, res) => {
     try {
-        const { role, recentSearchedCities, wishlist, phone, username, email, image } = req.user;
-        ok(res, { role, recentSearchedCities, wishlist: wishlist || [], phone: phone || '', username, email, image });
+        const { _id, role, recentSearchedCities, wishlist, phone, username, email, image } = req.user;
+        ok(res, { _id, role, recentSearchedCities, wishlist: wishlist || [], phone: phone || '', username, email, image });
     } catch (err) {
         fail(res, err.message);
     }

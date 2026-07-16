@@ -84,25 +84,49 @@
   --duration-slow: 400ms;
 }
 
-/* ── DARK MODE ─────────────────────────────────────────────── */
+/* ── DARK MODE — Luxury Minimal × Editorial Dark ─────────────
+   Palette: shadcn/ui zinc + warm red accent atmosphere
+   Aesthetic: Linear.app × Vercel dark — deep, grainy, editorial
+   ─────────────────────────────────────────────────────────── */
 .dark {
-  --color-surface:        #111111;
-  --color-surface-2:      #1C1C1E;
-  --color-surface-3:      #2C2C2E;
-  --color-surface-4:      #3A3A3C;
-  --color-border:         rgba(255, 255, 255, 0.08);
-  --color-border-strong:  rgba(255, 255, 255, 0.14);
-  --color-text-primary:   #F5F5F7;
-  --color-text-secondary: #AEAEB2;
-  --color-text-muted:     #636366;
-  --color-success-light:  rgba(48, 209, 88, 0.15);
-  --color-success-text:   #30D158;
-  --color-warning-light:  rgba(255, 159, 10, 0.15);
-  --color-warning-text:   #FF9F0A;
-  --shadow-sm:  0 2px 8px rgba(0,0,0,0.35);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.50);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,0.65);
-  --shadow-xl:  0 20px 48px rgba(0,0,0,0.75);
+  /* ── Surfaces — zinc scale ───────────────────────────────── */
+  --color-surface:        #09090b;   /* zinc-950 — near-void bg  */
+  --color-surface-2:      #111113;   /* zinc-950+ — card bg      */
+  --color-surface-3:      #1c1c1f;   /* zinc-900 — input / muted */
+  --color-surface-4:      #2a2a2e;   /* zinc-800 — hover accent  */
+
+  /* ── Borders — barely-there zinc lines ───────────────────── */
+  --color-border:         rgba(255, 255, 255, 0.07);
+  --color-border-strong:  rgba(255, 255, 255, 0.13);
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --color-text-primary:   #f4f4f5;   /* zinc-100 — warm white    */
+  --color-text-secondary: #a1a1aa;   /* zinc-400 — readable muted*/
+  --color-text-muted:     #52525b;   /* zinc-600 — ghost text    */
+  --color-text-inverse:   #09090b;
+
+  /* ── Brand ambient — warmth in the void ─────────────────── */
+  --color-primary-glow:   rgba(255, 45, 85, 0.18);
+  --color-ambient-red:    rgba(232, 0, 61, 0.10);
+  --color-ambient-amber:  rgba(255, 159, 10, 0.06);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --color-success-light:  rgba(34, 197, 94, 0.11);
+  --color-success-text:   #4ade80;
+  --color-warning-light:  rgba(234, 179, 8, 0.11);
+  --color-warning-text:   #facc15;
+
+  /* ── Shadows — cinematic depth on near-black ─────────────── */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.55);
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.60);
+  --shadow-md:  0 4px 20px rgba(0,0,0,0.68);
+  --shadow-lg:  0 8px 36px rgba(0,0,0,0.78);
+  --shadow-xl:  0 20px 60px rgba(0,0,0,0.88);
+  --shadow-glow: 0 0 0 3px rgba(255, 45, 85, 0.20);
+  --shadow-red:  0 8px 32px rgba(255, 45, 85, 0.30);
+
+  /* ── GSAP performance hints ──────────────────────────────── */
+  --will-change-motion: transform, opacity;
 }
 
 /* ============================================================
@@ -243,10 +267,48 @@ p { line-height: 1.75; }
 }
 
 .dark .glass-white {
-  background: rgba(28, 28, 30, 0.90);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  background: rgba(9, 9, 11, 0.92);    /* zinc-950 tinted */
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.70);
 }
+
+/* ── Full-width navbar glass — dark-first, light-aware ─────── */
+.navbar-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.navbar-glass-scrolled {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03), 0 4px 24px rgba(0,0,0,0.06);
+}
+
+/* Dark mode overrides */
+.dark .navbar-glass {
+  background: rgba(9, 9, 11, 0.08);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 2px 16px rgba(0,0,0,0.20);
+}
+
+.dark .navbar-glass-scrolled {
+  background: rgba(7, 7, 9, 0.2);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04),
+    0 6px 32px rgba(0,0,0,0.40),
+    0 1px 12px rgba(0,0,0,0.20);
+}
+
 
 /* ============================================================
    SKELETON / LOADING
@@ -759,3 +821,68 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   mix-blend-mode: overlay;
   opacity: 0.5;
 }
+
+/* ============================================================
+   DARK MODE AMBIENT — editorial grain + glow surfaces
+   Inspired by: Linear.app / Vercel / shadcn dark
+   Applied via GSAP ScrollTrigger for scroll-synced reveal
+   ============================================================ */
+
+/* Ambient glow orb — place as first child of a section */
+.dark-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: blur(80px);
+  mix-blend-mode: screen;
+}
+.dark-orb-red {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(232,0,61,0.18) 0%, transparent 70%);
+}
+.dark-orb-amber {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(255,159,10,0.12) 0%, transparent 70%);
+}
+
+/* Dark surface with grain + glow — premium card */
+.dark .surface-premium {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  position: relative;
+  isolation: isolate;
+}
+.dark .surface-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.028'/%3E%3C/svg%3E");
+  background-size: 128px;
+  mix-blend-mode: overlay;
+}
+
+/* Magnetic nav-link hover — GSAP target class */
+.mag-link {
+  display: inline-block;
+  will-change: transform;
+  transition: color 0.18s ease;
+}
+
+/* GSAP scrub target — zero-overhead baseline */
+.gsap-parallax { will-change: transform; }
+.gsap-fade     { will-change: opacity, transform; }
+
+/* Dark page background with ambient gradient mesh */
+.dark body,
+.dark #root {
+  background-image:
+    radial-gradient(ellipse 80% 50% at -10% 110%, rgba(232,0,61,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 110% -10%, rgba(255,159,10,0.04) 0%, transparent 55%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+

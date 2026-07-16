@@ -25,11 +25,13 @@ const _findOrCreateGoogleUser = async ({ email, name, picture, googleId }) => {
     let user = await User.findOne({ email: emailLower });
 
     if (user) {
-        // User exists — update googleId/picture if needed and return
-        if (!user.googleId) {
-            user.googleId = googleId;
-            if (!user.image && picture) user.image = picture;
-            await user.save();
+        // User exists — update googleId/picture if missing
+        let dirty = false;
+        if (!user.googleId) { user.googleId = googleId; dirty = true; }
+        if (!user.image && picture) { user.image = picture; dirty = true; }
+        if (dirty) {
+            // validateModifiedOnly:true skips validation of un-fetched fields (e.g. password select:false)
+            await user.save({ validateModifiedOnly: true });
         }
         return user;
     }
@@ -125,9 +127,19 @@ export const googleAccess = async (req, res) => {
         if (!email || !googleId) return fail(res, 'Google account data required');
 
         const user = await _findOrCreateGoogleUser({ email, name, picture, googleId });
+
+        // Guard: _findOrCreateGoogleUser should always return a valid document.
+        // If for any reason it returns without _id, surface a clear error.
+        if (!user?._id) {
+            console.error('[GoogleAccess] ERROR: _findOrCreateGoogleUser returned without _id:', user);
+            return fail(res, 'Google sign-in failed — user record invalid', 500);
+        }
+
         ok(res, { token: signToken(user._id), user: formatUser(user) });
     } catch (err) {
-        console.error('Google access error:', err.message);
+        // Log full stack so we know the EXACT line that threw
+        console.error('[GoogleAccess] Error:', err.message);
+        console.error('[GoogleAccess] Stack:', err.stack);
         fail(res, 'Google sign-in failed', 500);
     }
 };
@@ -140,3 +152,4 @@ export const getMe = async (req, res) => {
         fail(res, err.message, 500);
     }
 };
+

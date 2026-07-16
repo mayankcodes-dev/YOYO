@@ -10,6 +10,13 @@ const AppContext = createContext();
 const TOKEN_KEY = 'yoyo_token';
 const USER_KEY  = 'yoyo_user';
 
+// Auth-failure messages from the protect middleware — used by the interceptor
+const AUTH_ERRORS = new Set([
+  'Not authenticated',
+  'User not found',
+  'Invalid or expired token',
+]);
+
 export const AppProvider = ({ children }) => {
   const currency = import.meta.env.VITE_CURRENCY || "₹";
   const navigate  = useNavigate();
@@ -30,11 +37,41 @@ export const AppProvider = ({ children }) => {
   const [roomsLoaded,    setRoomsLoaded]   = useState(false);
   const [wishlist,       setWishlist]      = useState([]);
 
+  // ── Reusable session-clear helper ──────────────────────────
+  const clearSession = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setToken(null);
+    setUser(null);
+    delete axios.defaults.headers.common['Authorization'];
+  }, []);
+
   // ── Axios auth header ───────────────────────────────────────
   useEffect(() => {
     if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     else delete axios.defaults.headers.common['Authorization'];
   }, [token]);
+
+  // ── Global interceptor — auto-clear stale sessions ──────────
+  // Clears the session when any authenticated request returns an auth-failure.
+  // Skips responses where the request was already aborted (signal.aborted=true)
+  // so that stale sync requests can’t wipe a freshly-set session.
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      (response) => {
+        const d = response.data;
+        const hadAuth = !!response.config?.headers?.Authorization;
+        const wasAborted = response.config?.signal?.aborted === true;
+        if (hadAuth && !wasAborted && d && d.success === false && AUTH_ERRORS.has(d.message)) {
+          console.warn('[Auth] Interceptor: stale session detected —', d.message);
+          clearSession();
+        }
+        return response;
+      },
+      (error) => Promise.reject(error)
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, [clearSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Dark mode ───────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => {
@@ -81,12 +118,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setToken(null);
-    setUser(null);
+    clearSession();
     setWishlist([]);
-    delete axios.defaults.headers.common['Authorization'];
     navigate('/');
     toast.success('Signed out');
   };
@@ -101,29 +134,59 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // ── Sync user data from server ───────────────────────────────
-  const fetchUser = useCallback(async () => {
+  // Uses AbortController to cancel stale requests when token changes.
+  // signal.aborted is checked BEFORE clearSession() is called because
+  // on localhost the server responds in ~5 ms — faster than React’s
+  // cleanup cycle — so the abort fires AFTER the response arrives.
+  // Reading signal.aborted at that point is still true, so we discard it.
+  useEffect(() => {
     if (!token) return;
-    try {
-      const { data } = await axios.get('/api/user');
-      if (data.success) {
-        setSearchedCities(data.recentSearchedCities || []);
-        setWishlist(data.wishlist?.map(id => id.toString()) || []);
-        // Keep local user role in sync (e.g. after hotel registration)
-        setUser(prev => prev ? { ...prev, role: data.role } : prev);
-      } else {
-        // Token is invalid or user no longer exists in DB (stale Clerk token, etc.)
-        // Silently clear session so the user isn't stuck in a broken "logged in" state
-        console.warn('[Auth] fetchUser failed — clearing stale session:', data.message);
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-        setToken(null);
-        setUser(null);
-        delete axios.defaults.headers.common['Authorization'];
-      }
-    } catch { /* network error — keep session, will retry on next page load */ }
-  }, [token]);
+    const controller = new AbortController();
 
-  useEffect(() => { if (user) fetchUser(); }, [user?._id]);
+    (async () => {
+      try {
+        const { data } = await axios.get('/api/user', { signal: controller.signal });
+
+        // If abort was requested (even after the response arrived), this is a
+        // stale response for a superseded token — ignore it completely.
+        if (controller.signal.aborted) {
+          console.log('[Auth] syncUser: ignoring late response for aborted (stale) request');
+          return;
+        }
+
+        if (data.success) {
+          console.log('[Auth] syncUser: success, role=', data.role, '_id=', data._id);
+          setSearchedCities(data.recentSearchedCities || []);
+          setWishlist(data.wishlist?.map(id => id.toString()) || []);
+          // Build a complete user object from the server response.
+          // If prev is null (e.g. USER_KEY was cleared but TOKEN_KEY survived),
+          // reconstruct from server data instead of silently keeping null.
+          setUser(prev => {
+            const updated = {
+              ...(prev || {}),
+              _id:      data._id,
+              username: data.username,
+              email:    data.email,
+              image:    data.image,
+              role:     data.role,
+            };
+            localStorage.setItem(USER_KEY, JSON.stringify(updated));
+            return updated;
+          });
+        } else {
+          const isAuthFailure = AUTH_ERRORS.has(data.message);
+          console.warn('[Auth] syncUser:', data.message,
+            isAuthFailure ? '→ clearing session' : '→ keeping session (not an auth error)');
+          if (isAuthFailure) clearSession();
+        }
+      } catch (err) {
+        if (axios.isCancel(err)) return; // Cleanly aborted — ignore
+        console.warn('[Auth] syncUser: network error, keeping session —', err.message);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [token, clearSession]);
 
   // ── Wishlist toggle ──────────────────────────────────────────
   const toggleWishlist = useCallback(async (roomId) => {
@@ -154,7 +217,7 @@ export const AppProvider = ({ children }) => {
     user, token, getToken, axios,
     isOwner, isAdmin,
     login, logout, register, googleLogin,
-    saveSession, updateUser,
+    saveSession, updateUser, clearSession,
     showHotelReg, setShowHotelReg,
     searchedCities, setSearchedCities,
     rooms, setRooms, fetchRooms, roomsLoaded,

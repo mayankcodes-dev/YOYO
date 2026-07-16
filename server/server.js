@@ -36,9 +36,20 @@ const server = createServer(app);  // ← HTTP server (needed for Socket.io)
 // ═══════════════════════════════════════════════════════════════
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
+const checkOrigin = (origin, cb) => {
+    if (!origin || 
+        origin.startsWith('http://localhost:') || 
+        origin.startsWith('http://127.0.0.1:') || 
+        allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+        cb(null, true);
+    } else {
+        cb(new Error('CORS: Origin not allowed'));
+    }
+};
+
 const io = new Server(server, {
     cors: {
-        origin:      allowedOrigins,
+        origin:      checkOrigin,
         credentials: true,
         methods:     ['GET', 'POST'],
     },
@@ -96,10 +107,7 @@ app.use(helmet({
 
 // 2. CORS
 app.use(cors({
-    origin: (origin, cb) => {
-        if (!origin || allowedOrigins.some(o => origin.startsWith(o.trim()))) cb(null, true);
-        else cb(new Error('CORS: Origin not allowed'));
-    },
+    origin:      checkOrigin,
     credentials: true,
 }));
 

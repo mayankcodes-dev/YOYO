@@ -51,7 +51,7 @@ const RoomDetails = () => {
   const { id } = useParams();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { rooms, axios, getToken, navigate, currency, user } = useAppContext();
+  const { rooms, axios, getToken, navigate, currency, user, token, clearSession } = useAppContext();
   const [room,         setRoom]         = useState(null);
   const [mainImage,    setMainImage]    = useState(null);
   // Pre-populate from URL params so form state survives login redirect
@@ -95,7 +95,11 @@ const RoomDetails = () => {
   // ── Book room ───────────────────────────────────────────────
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    if (!user) {
+    // Guard: only redirect to login if BOTH user and token are absent.
+    // If token exists but user is still being rehydrated (syncUser in-flight),
+    // let the request through — the server validates the token authoritatively.
+    console.log('[Book] user:', user, 'token:', !!token);
+    if (!user && !token) {
       toast.error("Please sign in to book");
       // Encode form state into the return URL so it survives login redirect
       const params = new URLSearchParams();
@@ -117,7 +121,6 @@ const RoomDetails = () => {
       );
       if (data.success) {
         if (paymentMethod === 'stripe') {
-          // Redirect to Stripe checkout
           const stripeRes = await axios.post(
             '/api/bookings/stripe-payment',
             { bookingId: data.booking._id },
@@ -130,12 +133,25 @@ const RoomDetails = () => {
             navigate('/my-bookings');
           }
         } else {
-          toast.success("Room booked! Pay at hotel on arrival.");
+          toast.success('Room booked! Pay at hotel on arrival.');
           navigate('/my-bookings');
           window.scrollTo(0, 0);
         }
       } else {
-        toast.error(data.message);
+        // Auth failure — session is stale, clear it and send to login
+        const AUTH_MSGS = ['User not found', 'Not authenticated', 'Invalid or expired token'];
+        if (AUTH_MSGS.includes(data.message)) {
+          clearSession();
+          toast.error('Session expired. Please sign in again.');
+          const params = new URLSearchParams();
+          if (checkInDate)  params.set('checkIn',  checkInDate);
+          if (checkOutDate) params.set('checkOut', checkOutDate);
+          if (guests !== 1) params.set('guests',   guests);
+          const returnTo = `${location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+          navigate('/login', { state: { from: returnTo } });
+        } else {
+          toast.error(data.message);
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);

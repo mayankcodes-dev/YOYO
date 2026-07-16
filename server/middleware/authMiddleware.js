@@ -11,6 +11,7 @@ const protect = async (req, res, next) => {
 
         const token = header.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('[Protect] decoded id:', decoded.id, '| route:', req.originalUrl);
 
         // Guard against legacy Clerk-format IDs in old JWTs (e.g. "user_35Sr3...")
         // User.findById will throw a CastError for non-ObjectId strings
@@ -18,14 +19,20 @@ const protect = async (req, res, next) => {
         try {
             user = await User.findById(decoded.id);
         } catch (castErr) {
+            console.warn('[Protect] CastError for id:', decoded.id);
             return res.json({ success: false, message: 'Invalid or expired token' });
         }
 
-        if (!user) return res.json({ success: false, message: 'User not found' });
+        if (!user) {
+            console.warn('[Protect] User.findById returned null for id:', decoded.id);
+            return res.json({ success: false, message: 'User not found' });
+        }
 
+        console.log('[Protect] user found — _id:', user._id.toString(), 'role:', user.role);
         req.user = user;
         next();
     } catch (err) {
+        console.warn('[Protect] JWT error:', err.message);
         return res.json({ success: false, message: 'Invalid or expired token' });
     }
 };
