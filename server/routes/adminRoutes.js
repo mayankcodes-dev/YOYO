@@ -1,7 +1,6 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, requireAdmin } from '../middleware/authMiddleware.js';
 import {
-    requireAdmin,
     getStats,
     getUsers,
     updateUserRole,
@@ -10,6 +9,7 @@ import {
     getReviews,
     adminDeleteReview,
 } from '../controllers/adminController.js';
+
 
 const adminRouter = express.Router();
 

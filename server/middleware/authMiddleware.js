@@ -1,42 +1,46 @@
-import jwt from 'jsonwebtoken';
+import jwt  from 'jsonwebtoken';
 import User from '../models/User.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'yoyo_jwt_secret_change_in_prod';
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const protect = async (req, res, next) => {
-    try {
-        const header = req.headers.authorization;
-        if (!header || !header.startsWith('Bearer '))
-            return res.json({ success: false, message: 'Not authenticated' });
+// ─── protect — verifies Bearer JWT and attaches req.user ──────
+export const protect = async (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer '))
+    return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const token = header.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        console.log('[Protect] decoded id:', decoded.id, '| route:', req.originalUrl);
+  const token = header.slice(7);
 
-        // Guard against legacy Clerk-format IDs in old JWTs (e.g. "user_35Sr3...")
-        // User.findById will throw a CastError for non-ObjectId strings
-        let user;
-        try {
-            user = await User.findById(decoded.id);
-        } catch (castErr) {
-            console.warn('[Protect] CastError for id:', decoded.id);
-            return res.json({ success: false, message: 'Invalid or expired token' });
-        }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
 
-        if (!user) {
-            console.warn('[Protect] User.findById returned null for id:', decoded.id);
-            return res.json({ success: false, message: 'User not found' });
-        }
-
-        console.log('[Protect] user found — _id:', user._id.toString(), 'role:', user.role);
-        req.user = user;
-        next();
-    } catch (err) {
-        console.warn('[Protect] JWT error:', err.message);
-        return res.json({ success: false, message: 'Invalid or expired token' });
-    }
+  try {
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ success: false, message: 'User not found' });
+    req.user = user;
+    next();
+  } catch {
+    // CastError — malformed id (e.g. legacy Clerk format)
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
 };
 
-// Support both: import protect from '...' AND import { protect } from '...'
-export { protect };
+// ─── requireAdmin — must follow protect ───────────────────────
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin')
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  next();
+};
+
+// ─── requireOwner — must follow protect ───────────────────────
+export const requireOwner = (req, res, next) => {
+  if (req.user?.role !== 'hotelOwner' && req.user?.role !== 'admin')
+    return res.status(403).json({ success: false, message: 'Hotel owner access required' });
+  next();
+};
+
 export default protect;

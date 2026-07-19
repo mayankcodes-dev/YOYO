@@ -1,4 +1,4 @@
-// Shared YoYo brand logo — single source of truth
+ï»¿// Shared YoYo brand logo ï¿½ single source of truth
 // darkMode prop controls wordmark colour: true=white (navbar), false=theme-aware (footer/light pages)
 
 const Logo = ({ size = "md", iconOnly = false, darkMode = true }) => {
@@ -15,14 +15,14 @@ const Logo = ({ size = "md", iconOnly = false, darkMode = true }) => {
         style={{ width: d, height: d, flexShrink: 0, objectFit: "contain" }}
       />
 
-      {/* Wordmark — colour adapts to theme */}
+      {/* Wordmark ï¿½ colour adapts to theme */}
       {!iconOnly && (
         <span
           style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 900,
             fontSize: fontSizes[size] || fontSizes.md,
-            color: darkMode ? "#ffffff" : "var(--color-text-primary)",
+            color: darkMode ? "#ffffff" : "#111111",
             letterSpacing: "-0.04em",
             lineHeight: 1,
             transition: "color 0.3s ease",

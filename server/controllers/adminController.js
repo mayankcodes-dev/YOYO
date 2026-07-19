@@ -5,11 +5,7 @@ import Booking from '../models/Booking.js';
 import Review  from '../models/Review.js';
 import { ok, fail } from '../utils/respond.js';
 
-export const requireAdmin = (req, res, next) => {
-    if (req.user?.role !== 'admin')
-        return res.status(403).json({ success: false, message: 'Admin access required' });
-    next();
-};
+// requireAdmin middleware is in server/middleware/authMiddleware.js
 
 // ── GET /api/admin/stats ──────────────────────────────────────
 export const getStats = async (req, res) => {

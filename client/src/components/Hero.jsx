@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+ï»¿import { motion } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 
 const CLOUD           = "dgqgzmzed";
@@ -15,7 +15,7 @@ const wordVariants = {
   visible: { opacity: 1, y: 0, rotateX: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// Smooth-scroll helper — works even if target is on same page
+// Smooth-scroll helper ï¿½ works even if target is on same page
 const scrollToDeals = () => {
   const el = document.getElementById("flash-deals");
   if (el) {
@@ -62,7 +62,7 @@ const Hero = () => {
         className="absolute inset-0"
         style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 22%)" }}
       />
-      {/* Animated red glow — atmospheric bottom-left */}
+      {/* Animated red glow ï¿½ atmospheric bottom-left */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{ opacity: [0.18, 0.30, 0.18] }}
@@ -77,33 +77,7 @@ const Hero = () => {
         className="relative z-10 h-full flex flex-col items-center justify-center px-5 text-center"
         style={{ perspective: "900px", paddingBottom: "5vh" }}
       >
-
-        {/* Platform badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -18, scale: 0.85 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.55, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="inline-flex items-center gap-2 px-5 py-2 rounded-full mb-9"
-          style={{
-            background: "rgba(232,0,61,0.14)",
-            border: "1px solid rgba(232,0,61,0.42)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <motion.span
-            animate={{ scale: [1, 1.35, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
-            style={{ color: "#FF4570" }}
-          >??</motion.span>
-          <span
-            className="text-xs font-bold tracking-[0.12em] uppercase"
-            style={{ color: "rgba(255,255,255,0.90)" }}
-          >
-            India&apos;s Fastest Growing Hotel Platform
-          </span>
-        </motion.div>
-
-        {/* -- Headline — word-by-word stagger ----------- */}
+        {/* -- Headline ï¿½ word-by-word stagger ----------- */}
         <motion.h1
           variants={containerVariants}
           initial="hidden"
@@ -134,7 +108,7 @@ const Hero = () => {
           className="text-lg max-w-lg mb-11 leading-relaxed"
           style={{ color: "rgba(255,255,255,0.68)", textShadow: "0 1px 14px rgba(0,0,0,0.55)" }}
         >
-          Budget to luxury — 10,000+ verified hotels across India.
+          Budget to luxury ï¿½ 10,000+ verified hotels across India.
           Use the search bar above to find your ideal stay.
         </motion.p>
 

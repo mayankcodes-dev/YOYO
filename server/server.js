@@ -4,6 +4,7 @@ import { Server }   from 'socket.io';
 import 'dotenv/config';
 import cors          from 'cors';
 import helmet        from 'helmet';
+import cookieParser  from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import hpp           from 'hpp';
 import rateLimit     from 'express-rate-limit';
@@ -126,6 +127,9 @@ app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebhook
 // 5. Body parsing
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// 5b. Cookie parsing (for httpOnly refresh token)
+app.use(cookieParser());
 
 // 6. NoSQL injection prevention — only sanitize body & params (req.query is read-only getter in Node 18+)
 app.use((req, _res, next) => {

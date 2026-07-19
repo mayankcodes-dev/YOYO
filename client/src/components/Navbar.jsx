@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+﻿import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,7 +44,7 @@ const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
         aria-label="Account menu"
         whileHover={{ scale: 1.07 }}
         whileTap={{ scale: 0.92 }}
-        className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden font-bold text-[11px] text-white flex-shrink-0"
+        className="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden font-bold text-[11px] text-white flex-shrink-0"
         style={{
           background: "linear-gradient(135deg,#E8003D,#9B001F)",
           boxShadow: open ? "0 0 0 2px rgba(232,0,61,0.55)" : "0 0 0 2px rgba(232,0,61,0)",
@@ -52,7 +52,7 @@ const AvatarMenu = ({ user, logout, navigate, isOwner, setShowHotelReg }) => {
         }}
       >
         {user.image
-          ? <img src={user.image} alt={user.username} className="w-8 h-8 object-cover" />
+          ? <img src={user.image} alt={user.username} className="w-9 h-9 object-cover" referrerPolicy="no-referrer" />
           : initial}
       </motion.button>
 
@@ -301,14 +301,14 @@ const Sep = () => (
   <div className="w-px h-4 flex-shrink-0" style={{ background: "var(--color-border-strong)" }} />
 );
 
-// Nav link � matches shadcn.io text style
+// Nav link
 const NavLink = ({ to, children, active }) => (
   <Link
     to={to}
     aria-current={active ? "page" : undefined}
-    className="relative text-sm px-1 py-1 transition-colors duration-150"
+    className="relative text-sm px-1 py-1 transition-colors duration-150 navbar-nav-link"
     style={{
-      color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+      color: active ? "#ffffff" : "rgba(255,255,255,0.72)",
       fontFamily: "inherit",
       fontWeight: 550,
       letterSpacing: "0",
@@ -318,7 +318,7 @@ const NavLink = ({ to, children, active }) => (
     {active && (
       <motion.span layoutId="nav-underline"
         className="absolute -bottom-px left-0 right-0 h-px"
-        style={{ background: "var(--color-text-primary)" }}
+        style={{ background: "#ffffff" }}
         transition={{ type: "spring", stiffness: 500, damping: 38 }}
       />
     )}
@@ -378,7 +378,7 @@ const Navbar = () => {
       gsap.to(progressRef.current, {
         scaleX: 1, ease: "none",
         scrollTrigger: {
-          trigger: document.documentElement,
+          trigger: document.body,
           start: "top top", end: "bottom bottom",
           scrub: 0.3,
         },
@@ -395,10 +395,10 @@ const Navbar = () => {
 
   return (
     <>
-      {/* GSAP scroll progress */}
+      {/* GSAP scroll progress — starts at 0, grows to 100% on scroll */}
       <div className="fixed top-0 left-0 right-0 z-[70] h-[2px] pointer-events-none" aria-hidden>
         <div ref={progressRef} className="h-full origin-left"
-          style={{ background: "linear-gradient(90deg,var(--color-primary),var(--color-accent))", scaleX: 0, willChange: "transform" }} />
+          style={{ background: "linear-gradient(90deg,var(--color-primary),var(--color-accent))", transform: "scaleX(0)", willChange: "transform" }} />
       </div>
 
       {/* -- Desktop navbar -------------------------------- */}
@@ -416,9 +416,9 @@ const Navbar = () => {
           style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
 
           {/* Logo */}
-          <Link to="/" aria-label="YoYo home" className="flex-shrink-0 mr-2">
+          <a href="/" aria-label="YoYo home" className="flex-shrink-0 mr-2">
             <Logo size="md" darkMode={darkMode} />
-          </Link>
+          </a>
 
           {/* Nav links � minimal text, no pill */}
           <nav className="flex items-center gap-5">
@@ -469,7 +469,7 @@ const Navbar = () => {
             ) : (
               <motion.div whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.93 }}>
                 <Link to="/login" state={{ from: location.pathname }} aria-label="Sign in"
-                  className="flex items-center justify-center w-8 h-8 rounded-full text-white flex-shrink-0"
+                  className="flex items-center justify-center w-9 h-9 rounded-full text-white flex-shrink-0"
                   style={{
                     background: "linear-gradient(135deg,#E8003D,#9B001F)",
                     boxShadow: "0 4px 14px rgba(232,0,61,0.35)",

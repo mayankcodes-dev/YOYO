@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+﻿import { NavLink } from 'react-router-dom';
 import Logo from '../Logo';
 
 const DashIcon = () => (
@@ -39,9 +39,11 @@ const Sidebar = () => (
     className="flex flex-col w-16 md:w-60 h-full border-r transition-all duration-300 pt-2"
     style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)" }}
   >
-    {/* Logo — desktop only */}
+    {/* Logo — desktop only, links to home with full reload */}
     <div className="hidden md:flex px-5 py-4 mb-2">
-      <Logo size="sm" />
+      <a href="/" aria-label="Go to homepage">
+        <Logo size="sm" />
+      </a>
     </div>
 
     <nav className="flex flex-col gap-1 px-2">

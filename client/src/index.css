@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
@@ -274,40 +274,56 @@ p { line-height: 1.75; }
 
 /* ── Full-width navbar glass — dark-first, light-aware ─────── */
 .navbar-glass {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 2px 12px rgba(0,0,0,0.04);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 2px 8px rgba(0,0,0,0.03);
 }
 
 .navbar-glass-scrolled {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.03), 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
 }
 
 /* Dark mode overrides */
 .dark .navbar-glass {
-  background: rgba(9, 9, 11, 0.08);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  background: rgba(9, 9, 11, 0.70);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 2px 16px rgba(0,0,0,0.20);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 2px 12px rgba(0,0,0,0.20);
 }
 
 .dark .navbar-glass-scrolled {
-  background: rgba(7, 7, 9, 0.2);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
+  background: rgba(9, 9, 11, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.04),
-    0 6px 32px rgba(0,0,0,0.40),
-    0 1px 12px rgba(0,0,0,0.20);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.35);
 }
+
+/* Navbar nav links */
+.navbar-nav-link {
+  color: #111111 !important;
+}
+.navbar-nav-link[aria-current='page'],
+.navbar-nav-link:hover {
+  color: #000000 !important;
+}
+
+/* Dark theme */
+.dark .navbar-nav-link {
+  color: rgba(255, 255, 255, 0.80) !important;
+}
+.dark .navbar-nav-link[aria-current='page'],
+.dark .navbar-nav-link:hover {
+  color: #ffffff !important;
+}
+
 
 
 /* ============================================================
@@ -885,4 +901,55 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
+
+/* ============================================================
+   GSAP COMPONENT KEYFRAMES — FlashDeals / Testimonial / AppBanner
+   ============================================================ */
+
+/* Live dot — radial pulse */
+@keyframes live-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.8); opacity: 0.35; }
+}
+.live-dot {
+  animation: live-pulse 1.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Discount badge shimmer */
+@keyframes badge-shimmer {
+  0%   { box-shadow: 0 0 0 0 rgba(255,45,85,0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(255,45,85,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,45,85,0); }
+}
+.badge-pulse { animation: badge-shimmer 2.2s ease-out infinite; }
+
+/* Line-clamp utilities (used in TestimonialCard) */
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Testimonial card hover state — GPU layer */
+.testimonial-card {
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+.testimonial-card:hover {
+  z-index: 2;
+}
+
+/* GSAP draggable cursor override */
+[data-gsap-draggable] { cursor: grab; }
+[data-gsap-draggable]:active { cursor: grabbing; }
+
+/* Scrollbar hide for marquee rows */
+.marquee-row {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.marquee-row::-webkit-scrollbar { display: none; }
+
 

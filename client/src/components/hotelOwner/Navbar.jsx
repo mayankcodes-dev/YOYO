@@ -1,8 +1,10 @@
 import { useAppContext } from '../../context/AppContext';
+import { Link } from 'react-router-dom';
 import DarkModeToggle from '../DarkModeToggle';
+import Logo from '../Logo';
 
 const OwnerNavbar = () => {
-  const { user, logout } = useAppContext();
+  const { user, logout, darkMode } = useAppContext();
 
   const initial = user?.username?.[0]?.toUpperCase() || '?';
 
@@ -15,39 +17,32 @@ const OwnerNavbar = () => {
         boxShadow: "var(--shadow-xs)",
       }}
     >
-      {/* Brand */}
-      <div className="flex items-center gap-3">
-        <div
-          className="inline-flex items-center justify-center select-none"
-          style={{ background: "#E8003D", borderRadius: "7px", padding: "4px 10px" }}
-        >
-          <span style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 900, fontSize: "18px",
-            color: "#FFFFFF", letterSpacing: "-0.04em", lineHeight: 1,
-          }}>YoYo</span>
-        </div>
+      {/* Brand — Logo + wordmark on top, "Owner Portal" label below */}
+      <a href="/" aria-label="YoYo home — go to homepage" className="flex flex-col gap-0.5 group">
+        <Logo size="md" darkMode={darkMode} />
         <span
-          className="text-xs font-semibold px-2 py-0.5 rounded-full"
-          style={{ background: "var(--color-surface-3)", color: "var(--color-text-secondary)" }}
+          className="text-[10px] font-semibold tracking-widest uppercase pl-0.5"
+          style={{ color: 'var(--color-text-muted)' }}
         >
           Owner Portal
         </span>
-      </div>
+      </a>
 
       {/* Right */}
       <div className="flex items-center gap-3">
         <DarkModeToggle />
         {user && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => window.location.href = '/'}
-              className="w-8 h-8 rounded-full font-bold text-sm text-white flex items-center justify-center transition hover:opacity-80"
+            {/* Avatar — no navigation, just shows username tooltip */}
+            <div
+              className="w-8 h-8 rounded-full font-bold text-sm text-white flex items-center justify-center select-none cursor-default"
               style={{ background: 'linear-gradient(135deg,#E8003D,#9B001F)' }}
               title={user.username}
             >
-              {initial}
-            </button>
+              {user.image
+                ? <img src={user.image} alt={user.username} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                : initial}
+            </div>
             <button
               onClick={logout}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg transition hover:opacity-80"
