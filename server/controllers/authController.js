@@ -13,8 +13,13 @@ const {
   NODE_ENV,
 } = process.env;
 
-const ACCESS_EXPIRES  = '15m';  // Short-lived access token
-const REFRESH_EXPIRES = '7d';   // Long-lived refresh token (httpOnly cookie)
+// SESSION POLICY:
+//   Access token  → 6 hours (hard session duration)
+//   Refresh token → 7 days  (stored in httpOnly cookie for silent re-login)
+//   Client-side   → also tracks issuedAt so it can hard-expire at 6h even
+//                   if the server refresh cookie is still valid.
+const ACCESS_EXPIRES  = '6h';
+const REFRESH_EXPIRES = '7d';
 const REFRESH_COOKIE  = 'yoyo_refresh';
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -27,7 +32,7 @@ const setRefreshCookie = (res, token) =>
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure:   NODE_ENV === 'production',
-    sameSite: NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days in ms
     path:     '/api/auth',
   });
@@ -45,11 +50,23 @@ const fmt = (u) => ({
   phone:    u.phone,
 });
 
-// ─── Google OAuth — find or create user ───────────────────────
+// ─── Google OAuth — find, create, or merge user ────────────────
+//
+// Logic:
+//   1. Look up user by googleId first (fastest path — returning Google user)
+//   2. Look up by email (handles: JWT user logging in via Google for first time)
+//      → If found, link the googleId to their account (account merging)
+//   3. If no match at all → create a new Google-only user (no password needed)
+//
 const _googleFindOrCreate = async ({ email, name, picture, googleId }) => {
   const emailLower = email.toLowerCase().trim();
-  let user = await User.findOne({ email: emailLower });
 
+  // Fast path — already linked Google user
+  let user = await User.findOne({ googleId });
+  if (user) return user;
+
+  // Merge path — existing JWT account with same email
+  user = await User.findOne({ email: emailLower });
   if (user) {
     let dirty = false;
     if (!user.googleId)         { user.googleId = googleId; dirty = true; }
@@ -58,12 +75,13 @@ const _googleFindOrCreate = async ({ email, name, picture, googleId }) => {
     return user;
   }
 
-  // New Google user — generate a random secure password they will never use
-  const gPass = await bcrypt.hash(`g_${googleId}_${PASSWORD_PEPPER}_${Date.now()}`, 10);
+  // New Google-only user — no password required (schema now allows it)
   return User.create({
     username: name || emailLower.split('@')[0],
     email:    emailLower,
-    password: gPass,
+    // No password — Google-only account. The login controller checks
+    // user?.password before comparing, so this user simply can't log in via
+    // the email+password flow (which is correct and intentional).
     image:    picture || '',
     googleId,
   });
@@ -74,20 +92,20 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Basic presence checks (express-validator handles format rules in route)
     if (!username?.trim() || !email?.trim() || !password)
       return fail(res, 'All fields required');
 
     if (password.length < 8)
       return fail(res, 'Password must be at least 8 characters');
 
-    const exists = await User.findOne({ email: email.toLowerCase().trim() });
+    const emailLower = email.toLowerCase().trim();
+    const exists = await User.findOne({ email: emailLower });
     if (exists) return fail(res, 'Email already registered', 409);
 
     const hashed = await bcrypt.hash(password + PASSWORD_PEPPER, 12);
     const user   = await User.create({
       username: username.trim(),
-      email:    email.toLowerCase().trim(),
+      email:    emailLower,
       password: hashed,
     });
 
@@ -109,7 +127,11 @@ export const login = async (req, res) => {
     if (!email?.trim() || !password) return fail(res, 'Email and password required');
 
     const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
-    if (!user?.password) return fail(res, 'Invalid credentials', 401);
+
+    // user.password may be null/undefined if this is a Google-only account
+    if (!user?.password) {
+      return fail(res, 'This account was created with Google. Please sign in with Google.', 401);
+    }
 
     const valid = await bcrypt.compare(password + PASSWORD_PEPPER, user.password);
     if (!valid) return fail(res, 'Invalid credentials', 401);
@@ -151,7 +173,8 @@ export const googleAuth = async (req, res) => {
 };
 
 // ─── POST /api/auth/google/access ─────────────────────────────
-// Receives raw Google userinfo from the implicit / access-token flow
+// Receives raw Google userinfo from the implicit / access-token flow.
+// Used by the client's useGoogleLogin hook.
 export const googleAccess = async (req, res) => {
   try {
     const { googleId, email, name, picture } = req.body;
@@ -172,7 +195,9 @@ export const googleAccess = async (req, res) => {
 };
 
 // ─── POST /api/auth/refresh ────────────────────────────────────
-// Client sends the httpOnly cookie; we verify and issue a new access token
+// Client sends the httpOnly cookie; we verify and issue a new 6h access token.
+// Note: the client hard-expires the session at 6h via localStorage issuedAt,
+// so this endpoint is only reachable if the user's tab is still open and active.
 export const refreshToken = async (req, res) => {
   try {
     const token = req.cookies?.[REFRESH_COOKIE];

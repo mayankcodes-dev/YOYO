@@ -32,23 +32,39 @@ export const createRoom = async (req, res) => {
 };
 
 // ── GET /api/rooms/  (public) ─────────────────────────────────
+// Query params:
+//   ?page=1&limit=12   — paginated response
+//   (no params)        — returns all rooms (backward-compat for AppContext cache)
 export const getRooms = async (req, res) => {
     try {
-        const allRooms = await Room.find({ isAvailable: true, isDeleted: { $ne: true } })
-            .populate({
-                path:    'hotel',
-                // Do NOT populate hotel.owner here — legacy DB has Clerk string IDs
-                // (e.g. "user_35Sr3...") which Mongoose can't cast to ObjectId → CastError
-                options: { strictPopulate: false },
-            })
-            .sort({ createdAt: -1 })
-            .lean();
+        const { page, limit } = req.query;
+        const paginate = page !== undefined || limit !== undefined;
+        const p = Math.max(1, parseInt(page)  || 1);
+        const l = Math.min(50, parseInt(limit) || 12);
+        const skip = paginate ? (p - 1) * l : 0;
+
+        const query = { isAvailable: true, isDeleted: { $ne: true } };
+
+        const [allRooms, total] = await Promise.all([
+            Room.find(query)
+                .populate({ path: 'hotel', options: { strictPopulate: false } })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(paginate ? l : 0) // 0 = no limit
+                .lean(),
+            paginate ? Room.countDocuments(query) : Promise.resolve(null),
+        ]);
 
         // Filter out rooms where hotel failed to resolve
         const rooms = allRooms.filter(r => r.hotel && r.hotel._id);
-        ok(res, { rooms });
+
+        const resp = { rooms };
+        if (paginate) {
+            resp.pagination = { page: p, limit: l, total, pages: Math.ceil(total / l) };
+        }
+        ok(res, resp);
     } catch (error) {
-        // Last-resort: return rooms without hotel details rather than 400
+        // Last-resort: return rooms without hotel details
         try {
             const rooms = await Room.find({ isAvailable: true, isDeleted: { $ne: true } })
                 .sort({ createdAt: -1 })
@@ -59,6 +75,7 @@ export const getRooms = async (req, res) => {
         }
     }
 };
+
 
 // ── GET /api/rooms/owner  (protected hotelOwner) ──────────────
 export const getOwnerRooms = async (req, res) => {

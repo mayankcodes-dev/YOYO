@@ -1,16 +1,17 @@
 <p align="center">
-  <img src="client/public/favicon.svg" alt="QuickStay Logo" width="80" height="80" />
+  <img src="client/public/favicon.svg" alt="YoYo Logo" width="80" height="80" />
 </p>
 
-<h1 align="center">QuickStay</h1>
+<h1 align="center">YoYo — Hotel Booking Platform</h1>
 
 <p align="center">
   <strong>A full-stack hotel booking platform built with the MERN stack</strong>
 </p>
 
 <p align="center">
-  <a href="https://quick-stay-chi-two.vercel.app/">🌐 Live Demo</a> &nbsp;·&nbsp;
+  <a href="https://quick-stay-chi-two.vercel.app/" target="_blank">🌐 Live Demo</a> &nbsp;·&nbsp;
   <a href="#-getting-started">🚀 Getting Started</a> &nbsp;·&nbsp;
+  <a href="#-mobile-app">📱 Mobile App</a> &nbsp;·&nbsp;
   <a href="#-api-reference">📡 API Reference</a>
 </p>
 
@@ -19,61 +20,79 @@
   <img src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white" alt="Express" />
   <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white" alt="Stripe" />
-  <img src="https://img.shields.io/badge/Clerk-Auth-6C47FF?logo=clerk&logoColor=white" alt="Clerk" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/JWT-Auth-F7B731?logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/Cloudinary-Images-3448C5?logo=cloudinary&logoColor=white" alt="Cloudinary" />
 </p>
 
 ---
 
 ## 📋 Overview
 
-QuickStay provides two distinct user experiences:
+YoYo provides two distinct user experiences:
 
 | 🧳 **Travelers** | 🏨 **Hotel Owners** |
 |---|---|
 | Search & filter rooms by city, type, and price | Register a hotel and manage listings |
-| Check real-time availability by date range | Upload room images to Cloudinary |
+| Check real-time availability by date range | Upload up to **5 room images** to Cloudinary |
 | Book rooms with dynamic pricing | Toggle room availability instantly |
 | Pay via Stripe or at the hotel | Track bookings & revenue on a dashboard |
 | Receive email confirmations | View guest details and payment status |
 
 ---
 
+## 📱 Mobile App
+
+YoYo is also available as a **Progressive Web App (PWA)** — install it directly from the browser:
+
+| Platform | Link |
+|----------|------|
+| 🌐 **Web / PWA (Android & iOS)** | [Install from Live Site](https://quick-stay-chi-two.vercel.app/) |
+| 🤖 **Android** | Open the site in Chrome → tap ⋮ → **Add to Home Screen** |
+| 🍎 **iOS** | Open the site in Safari → tap Share → **Add to Home Screen** |
+
+> The app works offline for browsing, is installable on all devices, and syncs automatically when reconnected.
+
+---
+
 ## ✨ Key Features
 
-- **🔐 Auth** — Clerk-powered authentication with automatic user sync via webhooks
+- **🔐 Auth** — JWT-based authentication with Google OAuth & email/password login
 - **🔍 Smart Search** — Filter by destination, room type, price range, and sort order
 - **📅 Availability Engine** — Real-time date-range overlap detection prevents double-bookings
 - **💳 Stripe Integration** — Full checkout flow with webhook-based payment verification
 - **📧 Email Notifications** — Booking confirmations sent via SMTP (Brevo)
-- **☁️ Image Hosting** — Multi-image room uploads stored on Cloudinary
+- **☁️ Image Hosting** — Up to **5 images** per room, stored on Cloudinary
 - **📊 Owner Dashboard** — Live metrics for total bookings and revenue
-- **📱 Responsive Design** — Mobile-first UI with Tailwind CSS v4
+- **📱 PWA / Mobile-First** — Installable app, offline-ready, responsive on all screen sizes
+- **🏨 10,000+ Hotels** — Seeded across 100+ Indian cities with a built-in seed script
+- **🤖 Maya AI Chatbot** — Concierge chatbot to help guests with bookings
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-hotel_booking/
-├── client/                  # React + Vite frontend
-│   ├── public/              # Static assets & favicon
+YOYO/
+├── client/                  # React + Vite frontend (PWA)
+│   ├── public/              # Static assets, PWA icons, maya.png
 │   ├── src/
 │   │   ├── assets/          # Images, icons, dummy data
 │   │   ├── components/      # Reusable UI components
-│   │   ├── context/         # Global state (AppContext)
+│   │   ├── context/         # Global state (AppContext + JWT auth)
 │   │   └── pages/           # Route pages
-│   │       └── hotelOwner/  # Owner dashboard pages
+│   │       ├── hotelOwner/  # Owner dashboard pages
+│   │       └── admin/       # Admin panel pages
 │   └── .env                 # Client environment config
 │
 ├── server/                  # Express API backend
 │   ├── configs/             # DB & Cloudinary setup
 │   ├── controllers/         # Business logic
-│   ├── middleware/           # Auth middleware
+│   ├── middleware/           # JWT auth middleware
 │   ├── models/              # Mongoose schemas
 │   ├── routes/              # API route definitions
 │   └── .env                 # Server environment config
 │
+├── addHotels.js             # 🌱 Seed script — adds 100 hotels to MongoDB
 └── package.json             # Root deployment scripts
 ```
 
@@ -93,7 +112,8 @@ hotel_booking/
 - React 19
 - React Router 7
 - Tailwind CSS v4
-- Clerk React SDK
+- GSAP Animations
+- Framer Motion
 - Axios
 - react-hot-toast
 
@@ -102,14 +122,15 @@ hotel_booking/
 
 - Express 5
 - Mongoose 8
-- Multer 2
+- Multer 2 (image uploads)
 - Nodemailer 7
-- Svix (webhook verification)
+- jsonwebtoken
+- bcryptjs
 
 </td>
 <td>
 
-- **Auth**: Clerk
+- **Auth**: JWT + Google OAuth
 - **Payments**: Stripe
 - **Images**: Cloudinary
 - **Email**: Brevo SMTP
@@ -128,13 +149,13 @@ hotel_booking/
 
 - Node.js 18+
 - MongoDB Atlas cluster (or local MongoDB)
-- Accounts on: [Clerk](https://clerk.com), [Stripe](https://stripe.com), [Cloudinary](https://cloudinary.com)
+- Accounts on: [Stripe](https://stripe.com), [Cloudinary](https://cloudinary.com), [Google Cloud Console](https://console.cloud.google.com)
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/coderMayank69/QuickStay.git
-cd QuickStay
+git clone https://github.com/coderMayank69/YoYo.git
+cd YOYO
 ```
 
 ### 2. Set up environment variables
@@ -142,19 +163,22 @@ cd QuickStay
 **`client/.env`**
 
 ```env
-VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-VITE_BACKEND_URL=http://localhost:3000
-VITE_CURRENCY=$
+VITE_BACKEND_URL=http://localhost:4000
+VITE_CURRENCY=₹
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
 **`server/.env`**
 
 ```env
-PORT=3000
-MONGODB_URL=your_mongodb_connection_string
+PORT=4000
+MONGODB_URI=your_mongodb_connection_string
 
-# Clerk
-CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+# JWT
+JWT_SECRET=your_super_secret_jwt_key
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -181,10 +205,17 @@ cd client && npm install
 cd ../server && npm install
 ```
 
-### 4. Run the development servers
+### 4. Seed the database (optional)
 
 ```bash
-# Terminal 1 — Backend (port 3000)
+# From the root YOYO/ folder — adds 100 hotels across Indian cities
+node addHotels.js
+```
+
+### 5. Run the development servers
+
+```bash
+# Terminal 1 — Backend (port 4000)
 cd server
 npm run server
 
@@ -196,13 +227,39 @@ npm run dev
 | Service | URL |
 |---------|-----|
 | Frontend | http://localhost:5173 |
-| Backend API | http://localhost:3000 |
+| Backend API | http://localhost:4000 |
+
+---
+
+## 🌱 Hotel Seed Script
+
+The `addHotels.js` script in the project root seeds **100 hotels** across 80+ Indian cities into MongoDB.
+
+```bash
+# Run from root YOYO/ folder
+node addHotels.js
+```
+
+**Features:**
+- Skips hotels that already exist (safe to re-run)
+- Each hotel gets exactly **1 room** with **1 image**
+- Rooms support up to **5 images** when listed via the Owner Portal
+- Covers Port Blair → Gangtok → Gulmarg → Kanyakumari
 
 ---
 
 ## 📡 API Reference
 
-> All protected routes require a Clerk Bearer token in the `Authorization` header.
+> All protected routes require a JWT Bearer token in the `Authorization` header.
+
+### 👤 Auth
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/register` | ❌ | Register with email & password |
+| `POST` | `/api/auth/login` | ❌ | Login — returns JWT |
+| `POST` | `/api/auth/google` | ❌ | Google OAuth login |
+| `GET`  | `/api/auth/me` | ✅ | Get current user profile |
 
 ### 👤 Users
 
@@ -222,7 +279,7 @@ npm run dev
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/api/rooms` | ❌ | List all available rooms |
-| `POST` | `/api/rooms` | ✅ | Create room with image upload |
+| `POST` | `/api/rooms` | ✅ | Create room with up to 5 image uploads |
 | `GET` | `/api/rooms/owner` | ✅ | Get rooms for current owner |
 | `POST` | `/api/rooms/toggle-availability` | ✅ | Toggle room availability |
 
@@ -241,7 +298,6 @@ npm run dev
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/clerk` | Clerk user lifecycle events |
 | `POST` | `/stripe` | Stripe payment events |
 
 ---
@@ -277,38 +333,21 @@ npm run dev
 
 ---
 
-## 📦 Data Models
-
-### User
-| Field | Type | Description |
-|-------|------|-------------|
-| `_id` | String | Clerk user ID |
-| `username` | String | Display name |
-| `email` | String | User email |
-| `image` | String | Profile image URL |
-| `role` | Enum | `user` \| `hotelOwner` |
-| `recentSearchedCities` | [String] | Last 3 searched cities |
-
-### Hotel
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | String | Hotel name |
-| `address` | String | Full address |
-| `contact` | String | Phone number |
-| `city` | String | City location |
-| `owner` | Ref → User | Hotel owner |
+## 🗄️ Data Models
 
 ### Room
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `hotel` | Ref → Hotel | Parent hotel |
-| `roomType` | String | e.g., Single Bed, Double Bed |
-| `pricePerNight` | Number | Nightly rate |
-| `amenities` | [String] | e.g., Free Wi-Fi, Pool Access |
-| `images` | [String] | Cloudinary URLs |
-| `isAvailable` | Boolean | Availability toggle |
+| `hotel` | Ref → Hotel | Associated hotel |
+| `roomType` | String | Single / Double / Family Suite / Luxury |
+| `pricePerNight` | Number | Price in INR |
+| `amenities` | [String] | List of included amenities |
+| `images` | [String] | 1–5 Cloudinary URLs |
+| `isAvailable` | Boolean | Listing visibility |
 
 ### Booking
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `user` | Ref → User | Guest |
@@ -339,7 +378,7 @@ Set `VITE_BACKEND_URL` in the client's Vercel environment to point to the deploy
 
 | Location | Script | Command |
 |----------|--------|---------|
-| Root | Start backend | `npm run start` |
+| Root | Add 100 hotels to DB | `node addHotels.js` |
 | Client | Dev server | `npm run dev` |
 | Client | Production build | `npm run build` |
 | Client | Preview build | `npm run preview` |
@@ -350,5 +389,5 @@ Set `VITE_BACKEND_URL` in the client's Vercel environment to point to the deploy
 ---
 
 <p align="center">
-  Built with ❤️ by <a href="https://github.com/coderMayank69">Mayank Singh</a>
+  Built with ❤️ by <a href="https://mayankcodes.dev" target="_blank" rel="noopener noreferrer">Mayank Singh</a>
 </p>

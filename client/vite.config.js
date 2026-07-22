@@ -15,15 +15,16 @@ export default defineConfig({
       // ── Service Worker strategy ─────────────────────────────────
       registerType: 'prompt',          // show our own update UI
       injectRegister: 'auto',
-      // devOptions only for local testing - not needed in prod
-      // devOptions: { enabled: true },
+      // Enable SW in dev so install prompt works during local testing
+      devOptions: { enabled: true, type: 'module' },
 
       // ── Assets to include in precache ──────────────────────────
       includeAssets: [
-        'favicon.svg',
         'favicon-32x32.png',
         'favicon-96x96.png',
         'apple-touch-icon.png',
+        'logo.png',
+        'maya.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
         'offline.html',
@@ -47,11 +48,6 @@ export default defineConfig({
 
         // ── Icons ─────────────────────────────────────────────────
         icons: [
-          {
-            src:     '/pwa-64x64.png',
-            sizes:   '64x64',
-            type:    'image/png',
-          },
           {
             src:     '/pwa-192x192.png',
             sizes:   '192x192',

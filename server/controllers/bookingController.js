@@ -189,17 +189,31 @@ export const createBooking = async (req, res) => {
 
 // ──────────────────────────────────────────────────────────────
 // PROTECTED: GET /api/bookings/user
+// Query params: ?page=1&limit=10  (defaults: page=1, limit=10)
 // ──────────────────────────────────────────────────────────────
 export const getUserBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ user: req.user._id })
-            .populate('room hotel')
-            .sort({ createdAt: -1 });
-        ok(res, { bookings });
+        const p = Math.max(1, parseInt(req.query.page)  || 1);
+        const l = Math.min(50, parseInt(req.query.limit) || 50); // default 50 for backward-compat
+
+        const [bookings, total] = await Promise.all([
+            Booking.find({ user: req.user._id })
+                .populate('room hotel')
+                .sort({ createdAt: -1 })
+                .skip((p - 1) * l)
+                .limit(l),
+            Booking.countDocuments({ user: req.user._id }),
+        ]);
+
+        ok(res, {
+            bookings,
+            pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) },
+        });
     } catch (error) {
         fail(res, error.message);
     }
 };
+
 
 // ──────────────────────────────────────────────────────────────
 // PROTECTED: GET /api/bookings/hotel  (hotelOwner)

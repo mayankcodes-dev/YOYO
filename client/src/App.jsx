@@ -11,6 +11,7 @@ import PageTransition    from "./components/PageTransition";
 import MayaChatbot       from "./components/MayaChatbot";
 import PWAInstallBanner  from "./components/PWAInstallBanner";
 import PWAUpdatePrompt   from "./components/PWAUpdatePrompt";
+import ProtectedRoute    from "./components/ProtectedRoute";
 
 // ── Lazy-loaded pages (code splitting) ────────────────────────
 const Home               = lazy(() => import("./pages/Home"));
@@ -94,24 +95,30 @@ const App = () => {
                 <Route path="/register"                  element={<Register />} />
                 <Route path="/loader/:nextUrl"           element={<Loader />} />
 
-                {/* Authenticated user */}
-                <Route path="/my-bookings"               element={<MyBookings />} />
-                <Route path="/profile"                   element={<UserProfile />} />
-                <Route path="/booking-confirmation/:id"  element={<BookingConfirmation />} />
-
-                {/* Hotel Owner panel */}
-                <Route path="/owner" element={<Layout />}>
-                  <Route index            element={<Dashboard />} />
-                  <Route path="add-room"  element={<AddRoom />} />
-                  <Route path="list-room" element={<ListRoom />} />
-                  <Route path="edit-hotel" element={<EditHotel />} />
+                {/* Authenticated user — any logged-in role */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/my-bookings"               element={<MyBookings />} />
+                  <Route path="/profile"                   element={<UserProfile />} />
+                  <Route path="/booking-confirmation/:id"  element={<BookingConfirmation />} />
                 </Route>
 
-                {/* Admin panel */}
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index            element={<AdminDashboard />} />
-                  <Route path="hotels"    element={<AdminHotels />} />
-                  <Route path="users"     element={<AdminUsers />} />
+                {/* Hotel Owner panel — role: hotelOwner */}
+                <Route element={<ProtectedRoute requiredRole="hotelOwner" redirectTo="/" />}>
+                  <Route path="/owner" element={<Layout />}>
+                    <Route index            element={<Dashboard />} />
+                    <Route path="add-room"  element={<AddRoom />} />
+                    <Route path="list-room" element={<ListRoom />} />
+                    <Route path="edit-hotel" element={<EditHotel />} />
+                  </Route>
+                </Route>
+
+                {/* Admin panel — role: admin */}
+                <Route element={<ProtectedRoute requiredRole="admin" redirectTo="/" />}>
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index            element={<AdminDashboard />} />
+                    <Route path="hotels"    element={<AdminHotels />} />
+                    <Route path="users"     element={<AdminUsers />} />
+                  </Route>
                 </Route>
 
                 {/* 404 catch-all */}

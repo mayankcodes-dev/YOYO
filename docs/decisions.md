@@ -259,3 +259,73 @@ Two compounding bugs caused auth and booking failures:
 - `server/server.js`: Added `checkOrigin` helper and configured both Express CORS and Socket.io to use it.
 - `server/.env`: Added `http://localhost:5174` to `ALLOWED_ORIGINS`.
 - `server/jobs/scheduler.js`: Fixed the check-in reminders cron expression to `0 8 * * *`.
+
+---
+
+## ADR-013: 6-Hour Hard Session Policy — Both JWT and Google OAuth
+
+**Date:** 2026-07-21
+
+**Decision:** Changed `ACCESS_EXPIRES` from `'15m'` to `'6h'` in `authController.js`. Added a client-side hard-logout timer in `AppContext.jsx` that stores the session issuance timestamp (`yoyo_session_ts`) in localStorage and fires `clearSession()` + redirect to `/login` exactly at 6 hours, regardless of the httpOnly refresh cookie state.
+
+**Reason:** User requested a 6-hour session after which the user is logged out (not silently renewed). The 15-minute access token was too short and caused confusing logged-out states during normal use.
+
+**Tradeoffs:**
+- ✅ Predictable: user knows they'll be logged out after 6h of activity
+- ✅ Consistent: JWT users and Google OAuth users both get the same 6h session
+- ❌ No silent renewal — user must explicitly re-login after 6h (intentional)
+- ❌ Timer only fires if the browser tab is open — if the user closes and reopens after 6h, the timestamp check on mount handles it
+
+**Impact:**
+- `server/controllers/authController.js`: `ACCESS_EXPIRES = '6h'`
+- `client/src/context/AppContext.jsx`: `SESSION_TS_KEY`, `saveSession()`, 6h `setTimeout`
+
+---
+
+## ADR-014: Google OAuth + JWT Account Merging (passwordless users)
+
+**Date:** 2026-07-21
+
+**Decision:**
+1. `_googleFindOrCreate` now searches by `googleId` first (fast path), then by `email` (merge path), then creates a new user without a password (Google-only account).
+2. `User.password` changed from `required: true` to `required: false` — Google-only users are stored without a password field.
+3. `login()` controller returns a descriptive error if a Google-only user attempts email/password login: "This account was created with Google. Please sign in with Google."
+
+**Reason:**
+- Removed the fake `bcrypt.hash(...)` password for Google users — it was a security smell (even though never exposed) and complicated the User model semantics.
+- Account merging was already partially implemented but lacked the `googleId`-first lookup, meaning a Google user who changed their name would get a duplicate account.
+
+**Tradeoffs:**
+- ✅ Clean separation: JWT users have passwords, Google-only users don't
+- ✅ Account merging is now safe and explicit
+- ❌ Any legacy Google users who had a fake password stored will now pass login checks differently (but their `googleId` will still match on the fast path)
+
+**Impact:**
+- `server/models/User.js`: `password: required: false`
+- `server/controllers/authController.js`: `_googleFindOrCreate` rewritten
+
+---
+
+## ADR-015: Shared PWA Install Prompt Singleton
+
+**Date:** 2026-07-21
+
+**Problem:** `AppBanner` and `PWAInstallBanner` both registered independent `beforeinstallprompt` event listeners. Since `e.preventDefault()` must be called synchronously, only the first listener wins. The second component would get `null` from its `deferredPrompt` state and fall back to showing a manual hint even when the native install prompt was available.
+
+**Decision:** Created `client/src/hooks/usePWAInstall.js` — a module-level singleton that:
+1. Captures `beforeinstallprompt` once via a top-level event listener (registered at module import time, before any React component mounts)
+2. Stores it in `_deferredPrompt` (module variable)
+3. Notifies all hook subscribers via a `Set` of update callbacks
+4. Exposes `triggerInstall()` which calls `prompt()` and returns `'accepted'|'dismissed'|'ios'|'unavailable'`
+
+**Tradeoffs:**
+- ✅ Both AppBanner and PWAInstallBanner share the same prompt reference
+- ✅ Event is never missed (module-level listener fires before React hydration)
+- ❌ Module-level singleton pattern — not React-idiomatic, but correct for this specific browser API constraint
+
+**Impact:**
+- `client/src/hooks/usePWAInstall.js` ← NEW
+- `client/src/components/AppBanner.jsx`: removed competing listener
+- `client/src/components/PWAInstallBanner.jsx`: removed competing listener
+- `client/vite.config.js`: removed non-existent `pwa-64x64.png` and `favicon.svg` from precache lists
+

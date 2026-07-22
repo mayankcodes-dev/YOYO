@@ -40,7 +40,7 @@ const FIELDS = [
 ];
 
 const Register = () => {
-  const { register, googleLogin, navigate, axios, user } = useAppContext();
+  const { register, googleLogin, navigate, axios, user, darkMode } = useAppContext();
   const location = useLocation();
   // Prevent redirect loops — if 'from' is an auth page, go home instead
   const rawFrom = location.state?.from || "/";
@@ -129,7 +129,7 @@ const Register = () => {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link to="/" aria-label="YoYo home">
-              <Logo size="lg" />
+              <Logo size="lg" darkMode={darkMode} />
             </Link>
           </div>
 

@@ -27,6 +27,7 @@ import bookingRouter from './routes/bookingRoutes.js';
 import reviewRouter  from './routes/reviewRoutes.js';
 import adminRouter   from './routes/adminRoutes.js';
 import aiRouter      from './routes/aiRoutes.js';
+import newsletterRouter from './routes/newsletterRoutes.js';
 
 
 const app    = express();
@@ -168,14 +169,15 @@ app.use('/api', async (_req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // API ROUTES
 // ═══════════════════════════════════════════════════════════════
-app.use('/api/auth',     authRouter);
-app.use('/api/user',     userRouter);
-app.use('/api/hotels',   hotelRouter);
-app.use('/api/rooms',    roomRouter);
-app.use('/api/bookings', bookingRouter);
-app.use('/api/reviews',  reviewRouter);
-app.use('/api/admin',    adminRouter);
-app.use('/api/ai',       aiRouter);
+app.use('/api/auth',       authRouter);
+app.use('/api/user',       userRouter);
+app.use('/api/hotels',     hotelRouter);
+app.use('/api/rooms',      roomRouter);
+app.use('/api/bookings',   bookingRouter);
+app.use('/api/reviews',    reviewRouter);
+app.use('/api/admin',      adminRouter);
+app.use('/api/ai',         aiRouter);
+app.use('/api/newsletter', newsletterRouter);
 
 // 404
 app.use((_req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));

@@ -1,15 +1,37 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
+import { toast } from "react-hot-toast";
+
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
 const NewsLetter = () => {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const { axios } = useAppContext();
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done,    setDone]    = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email) return;
-    setSent(true);
+    const trimmed = email.trim();
+    if (!trimmed)              return toast.error("Enter your email address");
+    if (!EMAIL_RE.test(trimmed)) return toast.error("Please enter a valid email");
+
+    setLoading(true);
+    try {
+      const { data } = await axios.post("/api/newsletter/subscribe", { email: trimmed });
+      if (data.success) {
+        setDone(true);
+        toast.success(data.message || "Subscribed! 🎁");
+      } else {
+        toast.error(data.message || "Subscription failed");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message;
+      toast.error(msg || "Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,48 +60,86 @@ const NewsLetter = () => {
             </svg>
             Stay in the Loop
           </span>
-          <h2 className="font-display text-2xl md:text-4xl font-extrabold text-white mb-3">
-            Get Exclusive Deals in Your Inbox
-          </h2>
-          <p className="text-white/80 text-sm md:text-base mb-8 max-w-lg mx-auto">
-            Join 200,000+ travellers who get the best deals before anyone else. No spam, only great stays.
-          </p>
 
-          {sent ? (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-green-600 font-bold text-sm"
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green-500" aria-hidden="true">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-              You&apos;re on the list! Welcome to YoYo.
-            </motion.div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address"
-                className="flex-1 px-5 py-3 rounded-full text-sm outline-none"
-                style={{ background: "rgba(255,255,255,0.95)", color: "#1A1A2E" }}
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-full font-bold text-sm transition-all duration-200 hover:scale-105 shrink-0"
-                style={{ background: "#1A1A2E", color: "#fff" }}
+          <AnimatePresence mode="wait">
+            {done ? (
+              /* ── Success state ── */
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                className="py-4"
               >
-                Subscribe Free →
-              </button>
-            </form>
-          )}
+                <div className="text-5xl mb-3">🎉</div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-2">
+                  You're in!
+                </h2>
+                <p className="text-white/80 text-sm md:text-base max-w-sm mx-auto">
+                  Check your inbox — we've sent you a welcome gift with your first discount code.
+                </p>
+              </motion.div>
+            ) : (
+              /* ── Subscribe form ── */
+              <motion.div key="form">
+                <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-3 leading-tight">
+                  Exclusive deals, right in your inbox
+                </h2>
+                <p className="text-white/75 text-sm md:text-base mb-8 max-w-md mx-auto">
+                  Join 50,000+ travellers who get early access to flash sales and secret discounts.
+                </p>
 
-          <p className="text-white/50 text-xs mt-4">
-            By subscribing, you agree to our Privacy Policy. Unsubscribe anytime.
-          </p>
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+                  noValidate
+                >
+                  <input
+                    type="email"
+                    id="newsletter-email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    autoComplete="email"
+                    required
+                    disabled={loading}
+                    className="flex-1 rounded-xl px-4 py-3 text-sm outline-none transition-all disabled:opacity-60"
+                    style={{
+                      background: "rgba(255,255,255,0.15)",
+                      border: "1.5px solid rgba(255,255,255,0.30)",
+                      color: "#fff",
+                      caretColor: "#fff",
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.70)")}
+                    onBlur={(e)  => (e.target.style.borderColor = "rgba(255,255,255,0.30)")}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    id="newsletter-subscribe-btn"
+                    className="px-6 py-3 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 min-w-[130px]"
+                    style={{ background: "#fff", color: "#E8003D" }}
+                  >
+                    {loading ? (
+                      <>
+                        <span
+                          className="w-4 h-4 border-2 rounded-full animate-spin"
+                          style={{ borderColor: "rgba(232,0,61,0.25)", borderTopColor: "#E8003D" }}
+                          aria-hidden="true"
+                        />
+                        Subscribing…
+                      </>
+                    ) : "Subscribe →"}
+                  </button>
+                </form>
+
+                <p className="mt-4 text-white/50 text-xs">
+                  No spam, ever. Unsubscribe any time.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </section>

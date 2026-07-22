@@ -1,72 +1,56 @@
 /**
  * PWAInstallBanner.jsx
- * 
- * A beautiful, dismissible "Add to Home Screen" banner that appears
- * at the bottom of the screen when the browser fires the beforeinstallprompt event.
- * Works on Android Chrome, Edge, desktop Chrome, Samsung Browser.
- * For iOS Safari it shows a manual instruction sheet (iOS doesn't support the API).
+ *
+ * A dismissible "Add to Home Screen" bottom-sheet banner.
+ * Appears after a 3-second delay when the browser fires `beforeinstallprompt`.
+ * Uses the shared `usePWAInstall` hook so it doesn't compete with AppBanner
+ * for the deferred prompt event.
+ *
+ * Supports:
+ *  - Android / Chrome / Edge / Samsung Browser → native install prompt
+ *  - iOS Safari → manual instruction sheet
+ *  - Already installed → hidden
  */
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Detect iOS
-const isIOS = () =>
-  /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()) &&
-  !window.MSStream;
-
-// Detect if already running in standalone mode (installed)
-const isInStandaloneMode = () =>
-  ("standalone" in window.navigator && window.navigator.standalone) ||
-  window.matchMedia("(display-mode: standalone)").matches;
+import usePWAInstall from "../hooks/usePWAInstall";
 
 const DISMISS_KEY = "yoyo_pwa_banner_dismissed";
 
 const PWAInstallBanner = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showBanner, setShowBanner] = useState(false);
+  const { isInstalled, isIOS, deferredPrompt, triggerInstall } = usePWAInstall();
+
+  const [showBanner,   setShowBanner]   = useState(false);
   const [showIOSSheet, setShowIOSSheet] = useState(false);
-  const [installing, setInstalling] = useState(false);
+  const [installing,   setInstalling]   = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
-    // Don't show if already installed or dismissed recently
-    if (isInStandaloneMode()) return;
+    // Already installed or user dismissed this session
+    if (isInstalled) return;
     if (sessionStorage.getItem(DISMISS_KEY)) return;
 
-    if (isIOS()) {
-      // Delay 4 seconds so user can orient themselves
+    if (isIOS) {
+      // Show iOS banner after 4s delay so user can settle in
       timerRef.current = setTimeout(() => setShowBanner(true), 4000);
       return;
     }
 
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Show banner after 3-second delay
+    if (deferredPrompt) {
+      // Show banner 3s after the prompt becomes available
       timerRef.current = setTimeout(() => setShowBanner(true), 3000);
-    };
+    }
 
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      clearTimeout(timerRef.current);
-    };
-  }, []);
+    return () => clearTimeout(timerRef.current);
+  }, [isInstalled, isIOS, deferredPrompt]);
 
   const handleInstall = async () => {
-    if (isIOS()) {
-      setShowIOSSheet(true);
-      return;
-    }
-    if (!deferredPrompt) return;
+    if (isIOS) { setShowIOSSheet(true); return; }
     setInstalling(true);
     try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setShowBanner(false);
-        setDeferredPrompt(null);
-      }
+      const outcome = await triggerInstall();
+      if (outcome === 'accepted') setShowBanner(false);
+      if (outcome === 'unavailable') setShowIOSSheet(true); // Show manual hint as fallback
     } finally {
       setInstalling(false);
     }
@@ -133,7 +117,7 @@ const PWAInstallBanner = () => {
                   disabled={installing}
                   className="btn-primary text-xs py-2 px-4"
                 >
-                  {installing ? "Installing…" : isIOS() ? "How to Install" : "Install"}
+                  {installing ? "Installing…" : isIOS ? "How to Install" : "Install"}
                 </button>
               </div>
             </div>
@@ -172,7 +156,6 @@ const PWAInstallBanner = () => {
                 Install YoYo Rooms on your iPhone/iPad in 2 steps:
               </p>
 
-              {/* Steps */}
               {[
                 { icon: "⬆️", text: "Tap the Share button at the bottom of Safari" },
                 { icon: "➕", text: 'Scroll down and tap "Add to Home Screen"' },

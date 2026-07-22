@@ -42,7 +42,7 @@ const Spinner = () => (
 );
 
 const Login = () => {
-  const { login, googleLogin, navigate, axios, user } = useAppContext();
+  const { login, googleLogin, navigate, axios, user, darkMode } = useAppContext();
   const location = useLocation();
   // Prevent redirect loops — never send back to an auth page
   const rawFrom = location.state?.from || "/";
@@ -130,7 +130,7 @@ const Login = () => {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link to="/" aria-label="YoYo home">
-              <Logo size="lg" />
+              <Logo size="lg" darkMode={darkMode} />
             </Link>
           </div>
 

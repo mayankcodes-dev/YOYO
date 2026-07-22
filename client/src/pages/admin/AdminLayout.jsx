@@ -1,17 +1,12 @@
-import React, { useEffect } from 'react';
-import { Outlet, NavLink, Navigate } from 'react-router-dom';
+import React from 'react';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import Logo from '../../components/Logo';
 
+// Auth guard is handled by <ProtectedRoute requiredRole="admin"> in App.jsx.
+// This component only renders when the user is already verified as admin.
 const AdminLayout = () => {
-  const { isAdmin, user, navigate, darkMode } = useAppContext();
-
-  useEffect(() => {
-    if (user && !isAdmin) navigate('/');
-  }, [user, isAdmin]);
-
-  if (!user) return <Navigate to="/login" />;
-  if (!isAdmin) return null;
+  const { darkMode } = useAppContext();
 
   const links = [
     { to: '/admin',          label: '📊 Dashboard', end: true },

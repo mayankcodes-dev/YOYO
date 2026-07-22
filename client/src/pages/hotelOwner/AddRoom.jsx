@@ -1,11 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import { assets } from '../../assets/assets';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../../context/AppContext';
 
 const amenityList = ['Free Wi-Fi', 'Free Breakfast', 'Room Service', 'Mountain View', 'Pool Access'];
 const roomCategories = ['Budget', 'Premium', 'Luxury', 'Villa', 'Business'];
-const roomTypes = ['Single Bed', 'Double Bed', 'Luxury Room', 'Family Suite', 'Deluxe Suite', 'Executive Room'];
+const roomTypes = ['Single Bed', 'Double Bed', 'Family Suite', 'Luxury Suite', 'Mountain View Cottage', 'Heritage Suite', 'Business Suite'];
 
 const AddRoom = () => {
   const { axios, getToken } = useAppContext();

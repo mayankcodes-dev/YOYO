@@ -1,7 +1,8 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAppContext } from "../context/AppContext";
+import usePWAInstall from "../hooks/usePWAInstall";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -65,28 +66,15 @@ const FeaturePill = ({ icon, text, delay = 0 }) => {
 const AppBanner = () => {
   const { navigate } = useAppContext();
 
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled,    setIsInstalled]    = useState(false);
-  const [isIOS,          setIsIOS]          = useState(false);
-  const [showIOSHint,    setShowIOSHint]    = useState(false);
-
-  // PWA install prompt capture (unchanged logic)
-  useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) setIsInstalled(true);
-    const ua = navigator.userAgent;
-    if (/iphone|ipad|ipod/i.test(ua) && !window.navigator.standalone) setIsIOS(true);
-    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  // Use the shared singleton hook — no competing event listeners
+  const { isInstalled, isIOS, triggerInstall } = usePWAInstall();
+  const [showIOSHint, setShowIOSHint] = useState(false);
 
   const handleInstall = async () => {
-    if (isIOS) { setShowIOSHint(true); return; }
-    if (!deferredPrompt) { setShowIOSHint(true); return; }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
-    setDeferredPrompt(null);
+    const outcome = await triggerInstall();
+    if (outcome === 'ios' || outcome === 'unavailable') {
+      setShowIOSHint(true);
+    }
   };
 
   // ── GSAP refs ─────────────────────────────────────────────────────────────

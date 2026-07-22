@@ -2,15 +2,10 @@ import Sidebar from '../../components/hotelOwner/Sidebar';
 import OwnerNavbar from '../../components/hotelOwner/Navbar';
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { useAppContext } from '../../context/AppContext';
 
+// Auth guard is handled by <ProtectedRoute requiredRole="hotelOwner"> in App.jsx.
+// This component only renders when the user is already verified as hotelOwner.
 const Layout = () => {
-  const { isOwner, navigate } = useAppContext();
-
-  React.useEffect(() => {
-    if (!isOwner) navigate('/');
-  }, [isOwner]);
-
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--color-surface)" }}>
       <OwnerNavbar />
