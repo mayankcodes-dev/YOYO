@@ -19,6 +19,7 @@ AI_CONTEXT.md
 
 # Build output
 dist/
+dev-dist/
 build/
 .vite/
 
