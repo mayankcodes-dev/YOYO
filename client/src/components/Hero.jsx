@@ -24,109 +24,247 @@ const scrollToDeals = () => {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// ── Ambient piano + electric keys via Web Audio API ───────────────────
-// Uses sine/triangle oscillators layered to approximate soft piano tones.
-// Chord progression: Fmaj7 → Am7 → Dm7 → C — repeating every ~16 s.
-const CHORDS = [
-  // Fmaj7: F4 A4 C5 E5
-  [349.23, 440.00, 523.25, 659.25],
-  // Am7:   A3 C4 E4 G4
-  [220.00, 261.63, 329.63, 392.00],
-  // Dm7:   D4 F4 A4 C5
-  [293.66, 349.23, 440.00, 523.25],
-  // C maj7: C4 E4 G4 B4
-  [261.63, 329.63, 392.00, 493.88],
+// ── Luxury Travel Ambient Music via Web Audio API ─────────────────────
+// Grand piano timbre (additive harmonics + ADSR), lush string pads,
+// gentle bass, sparse high melody, long hall reverb, stereo chorus.
+// Chord progression in Db major — sounds like a 5-star hotel lobby.
+// Bar:  Dbmaj9 → Bbm9 → Gbmaj7 → Ab7sus4 (repeating every ~24 s)
+
+const NOTE = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+
+// Db major chord set — MIDI note numbers
+// Dbmaj9: Db3 F3 Ab3 C4 Eb4
+// Bbm9:   Bb2 Db3 F3 Ab3 C4
+// Gbmaj7: Gb2 Bb2 Db3 F3 Bb3
+// Ab7sus4:Ab2 Db3 Eb3 Ab3 Bb3
+const CHORD_SETS = [
+  [49, 53, 56, 60, 63].map(NOTE),  // Dbmaj9
+  [46, 49, 53, 56, 60].map(NOTE),  // Bbm9
+  [42, 46, 49, 53, 58].map(NOTE),  // Gbmaj7
+  [44, 49, 51, 56, 58].map(NOTE),  // Ab7sus4
 ];
 
-function createAmbientAudio(ctx) {
-  const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0, ctx.currentTime);
-  masterGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 3); // gentle fade-in
-  masterGain.connect(ctx.destination);
+// Sparse high melody — runs over top of chords (MIDI, relative beat offset)
+const MELODY_LINES = [
+  [[72, 0], [75, 2.5], [77, 5], [75, 7]],   // over Dbmaj9
+  [[70, 0], [72, 3],   [70, 5.5]],           // over Bbm9
+  [[66, 0], [70, 2],   [71, 5], [70, 7]],   // over Gbmaj7
+  [[68, 0], [70, 2.5], [68, 6]],            // over Ab7sus4
+];
 
-  const reverb = ctx.createConvolver();
-  // Simple impulse response for reverb
-  const rate = ctx.sampleRate;
-  const length = rate * 2.5;
-  const impulse = ctx.createBuffer(2, length, rate);
+function buildReverb(ctx, decaySec = 4.5) {
+  const conv = ctx.createConvolver();
+  const rate  = ctx.sampleRate;
+  const len   = Math.floor(rate * decaySec);
+  const buf   = ctx.createBuffer(2, len, rate);
   for (let ch = 0; ch < 2; ch++) {
-    const data = impulse.getChannelData(ch);
-    for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      // Exponential decay + slight early-reflection bump at ~40 ms
+      const earlyBoost = i < rate * 0.04 ? 1.6 : 1;
+      d[i] = (Math.random() * 2 - 1) * earlyBoost * Math.pow(1 - i / len, 2.2);
     }
   }
-  reverb.buffer = impulse;
-  reverb.connect(masterGain);
+  conv.buffer = buf;
+  return conv;
+}
 
-  const reverbGain = ctx.createGain();
-  reverbGain.gain.value = 0.35;
-  reverbGain.connect(reverb);
+function createAmbientAudio(ctx) {
+  // ── Master chain: dry → chorus → reverb → limiter → out ─────────────
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, ctx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 4);
+  masterGain.connect(ctx.destination);
 
-  const dryGain = ctx.createGain();
-  dryGain.gain.value = 0.65;
-  dryGain.connect(masterGain);
+  // Soft limiter (DynamicsCompressor as brick-wall)
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -3;
+  limiter.knee.value      = 2;
+  limiter.ratio.value     = 20;
+  limiter.attack.value    = 0.001;
+  limiter.release.value   = 0.15;
+  limiter.connect(masterGain);
 
-  let chordIndex = 0;
-  const CHORD_DURATION = 4; // seconds per chord
-  const oscillators = [];
+  // Hall reverb (long, 4.5 s decay)
+  const reverb     = buildReverb(ctx, 4.5);
+  reverb.connect(limiter);
 
-  const playChord = (freqs, startTime) => {
-    freqs.forEach((freq, i) => {
-      // Piano-like: sine + slight triangle blend
+  const reverbSend = ctx.createGain();
+  reverbSend.gain.value = 0.5;
+  reverbSend.connect(reverb);
+
+  const drySend = ctx.createGain();
+  drySend.gain.value = 0.5;
+  drySend.connect(limiter);
+
+  // Stereo chorus (two detuned delays panned L/R)
+  const chorusL   = ctx.createDelay(0.05);
+  const chorusR   = ctx.createDelay(0.05);
+  chorusL.delayTime.value = 0.027;
+  chorusR.delayTime.value = 0.031;
+  const panL = ctx.createStereoPanner(); panL.pan.value = -0.6;
+  const panR = ctx.createStereoPanner(); panR.pan.value =  0.6;
+  const chorusGain = ctx.createGain(); chorusGain.gain.value = 0.18;
+  chorusL.connect(panL); panL.connect(chorusGain);
+  chorusR.connect(panR); panR.connect(chorusGain);
+  chorusGain.connect(limiter);
+
+  // Helper: route a gain node to all buses
+  const routeTo = (envNode, dryAmt = 0.5, revAmt = 0.5) => {
+    envNode.connect(drySend);
+    envNode.connect(reverbSend);
+    envNode.connect(chorusL);
+    envNode.connect(chorusR);
+  };
+
+  // ── Grand piano note (additive harmonics) ────────────────────────────
+  // Layers: fundamental + octave + 5th harmonic + 3rd harmonic, each with
+  // slightly different decay to mimic piano string sympathetic resonance.
+  const playPianoNote = (freq, startTime, peakGain, duration) => {
+    const harmonics = [
+      { ratio: 1,    gain: peakGain,         decay: duration * 0.9 },
+      { ratio: 2,    gain: peakGain * 0.38,  decay: duration * 0.55 },
+      { ratio: 3,    gain: peakGain * 0.18,  decay: duration * 0.35 },
+      { ratio: 4,    gain: peakGain * 0.09,  decay: duration * 0.22 },
+      { ratio: 5,    gain: peakGain * 0.05,  decay: duration * 0.18 },
+    ];
+
+    harmonics.forEach(({ ratio, gain: hGain, decay }) => {
       const osc = ctx.createOscillator();
-      osc.type = i === 0 ? "triangle" : "sine"; // bass note slightly warmer
-      osc.frequency.setValueAtTime(freq, startTime);
+      osc.type = ratio === 1 ? "triangle" : "sine";
+      osc.frequency.value = freq * ratio;
 
       const env = ctx.createGain();
-      // Attack → Decay → Sustain → Release envelope
       env.gain.setValueAtTime(0, startTime);
-      env.gain.linearRampToValueAtTime(0.12 - i * 0.018, startTime + 0.04);   // attack
-      env.gain.exponentialRampToValueAtTime(0.07 - i * 0.01, startTime + 0.5); // decay
-      env.gain.setValueAtTime(0.05 - i * 0.008, startTime + CHORD_DURATION - 0.6); // sustain
-      env.gain.linearRampToValueAtTime(0.0001, startTime + CHORD_DURATION);    // release
+      env.gain.linearRampToValueAtTime(hGain, startTime + 0.01);   // fast attack
+      env.gain.setTargetAtTime(hGain * 0.35, startTime + 0.02, decay * 0.08); // decay
+      env.gain.setTargetAtTime(0.0001, startTime + decay * 0.55, decay * 0.25); // release
 
       osc.connect(env);
-      env.connect(dryGain);
-      env.connect(reverbGain);
+      routeTo(env);
       osc.start(startTime);
-      osc.stop(startTime + CHORD_DURATION);
-      oscillators.push(osc);
-    });
-
-    // Electric key shimmer — slightly detuned triangle an octave up
-    freqs.slice(0, 2).forEach((freq) => {
-      const shimmer = ctx.createOscillator();
-      shimmer.type = "triangle";
-      shimmer.frequency.setValueAtTime(freq * 2.002, startTime); // slight detune
-
-      const shimEnv = ctx.createGain();
-      shimEnv.gain.setValueAtTime(0, startTime);
-      shimEnv.gain.linearRampToValueAtTime(0.025, startTime + 0.08);
-      shimEnv.gain.exponentialRampToValueAtTime(0.0001, startTime + 2.0);
-
-      shimmer.connect(shimEnv);
-      shimEnv.connect(reverbGain);
-      shimmer.start(startTime);
-      shimmer.stop(startTime + 2.5);
-      oscillators.push(shimmer);
+      osc.stop(startTime + duration + 0.5);
     });
   };
 
-  // Schedule chords continuously
-  const scheduleAhead = 0.1;
-  let nextChordTime = ctx.currentTime + 0.5;
+  // ── String pad (slow attack sine cluster) ───────────────────────────
+  const playPad = (freqs, startTime, duration) => {
+    freqs.forEach((freq, i) => {
+      // Two slightly detuned sines per note — "ensemble" effect
+      [-1.5, 1.5].forEach((detuneCents) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq * Math.pow(2, detuneCents / 1200);
+
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0, startTime);
+        env.gain.linearRampToValueAtTime((0.04 - i * 0.004), startTime + 1.8); // slow attack
+        env.gain.setValueAtTime((0.04 - i * 0.004), startTime + duration - 1.2);
+        env.gain.linearRampToValueAtTime(0.0001, startTime + duration + 0.8);
+
+        const padFilter = ctx.createBiquadFilter();
+        padFilter.type      = "lowpass";
+        padFilter.frequency.value = 900 + i * 120;
+        padFilter.Q.value   = 0.5;
+
+        osc.connect(padFilter);
+        padFilter.connect(env);
+        env.connect(reverbSend); // pads live mostly in reverb
+        env.connect(chorusL);
+        env.connect(chorusR);
+        osc.start(startTime);
+        osc.stop(startTime + duration + 1.5);
+      });
+    });
+  };
+
+  // ── Bass note (warm sub-bass, one per chord) ─────────────────────────
+  const playBass = (freq, startTime, duration) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq * 0.5; // one octave below chord root
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, startTime);
+    env.gain.linearRampToValueAtTime(0.055, startTime + 0.08);
+    env.gain.exponentialRampToValueAtTime(0.028, startTime + duration * 0.4);
+    env.gain.linearRampToValueAtTime(0.0001, startTime + duration);
+
+    // High-cut so bass stays warm, not boomy
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = "lowpass";
+    lpf.frequency.value = 160;
+    osc.connect(lpf);
+    lpf.connect(env);
+    env.connect(drySend);
+    env.connect(reverbSend);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.3);
+  };
+
+  // ── Melody note (high, sparse, bell-like) ───────────────────────────
+  const playMelody = (freq, startTime) => {
+    const PARTIALS = [1, 2.756, 5.404]; // bell-like inharmonic series
+    PARTIALS.forEach((ratio, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * ratio;
+
+      const env = ctx.createGain();
+      const peak = [0.06, 0.02, 0.008][i];
+      env.gain.setValueAtTime(0, startTime);
+      env.gain.linearRampToValueAtTime(peak, startTime + 0.008);
+      env.gain.exponentialRampToValueAtTime(0.0001, startTime + [3.2, 1.8, 1.0][i]);
+
+      osc.connect(env);
+      env.connect(reverbSend); // melody is mostly wet
+      env.connect(drySend);
+      osc.start(startTime);
+      osc.stop(startTime + 4);
+    });
+  };
+
+  // ── Scheduler ────────────────────────────────────────────────────────
+  const CHORD_DUR   = 6;   // each chord lasts 6 seconds
+  const LOOK_AHEAD  = 0.3; // schedule 300 ms ahead
+  let chordIndex    = 0;
+  let nextChordTime = ctx.currentTime + 0.8;
+
+  const scheduleChord = (idx, startTime) => {
+    const freqs   = CHORD_SETS[idx % CHORD_SETS.length];
+    const melody  = MELODY_LINES[idx % MELODY_LINES.length];
+
+    // String pad — all notes, full duration
+    playPad(freqs, startTime, CHORD_DUR);
+
+    // Piano — arpeggiate bottom 3 notes gently (stagger 80 ms each)
+    freqs.slice(0, 4).forEach((f, i) => {
+      playPianoNote(f, startTime + i * 0.08, 0.10 - i * 0.018, CHORD_DUR * 0.75);
+    });
+
+    // Bass — root note
+    playBass(freqs[0], startTime, CHORD_DUR);
+
+    // Sparse melody
+    melody.forEach(([midi, offset]) => {
+      if (startTime + offset < ctx.currentTime - 0.05) return;
+      playMelody(NOTE(midi), startTime + offset);
+    });
+  };
 
   const scheduler = setInterval(() => {
     if (ctx.state === "closed") { clearInterval(scheduler); return; }
-    while (nextChordTime < ctx.currentTime + scheduleAhead + CHORD_DURATION) {
-      playChord(CHORDS[chordIndex % CHORDS.length], nextChordTime);
+    while (nextChordTime < ctx.currentTime + LOOK_AHEAD + CHORD_DUR) {
+      scheduleChord(chordIndex, nextChordTime);
       chordIndex++;
-      nextChordTime += CHORD_DURATION;
+      nextChordTime += CHORD_DUR;
     }
-  }, 200);
+  }, 100);
 
-  return { masterGain, scheduler, oscillators };
+  return { masterGain, scheduler };
 }
+
+
 
 // ── Hero Component ─────────────────────────────────────────────────────
 const Hero = () => {
