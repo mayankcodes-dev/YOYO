@@ -273,53 +273,86 @@ const Hero = () => {
   const videoRef    = useRef(null);
   const audioCtxRef = useRef(null);
   const audioNodes  = useRef(null);
+  const sectionRef  = useRef(null);
+  // Stable ref for isMuted so the IntersectionObserver closure always reads current value
+  const isMutedRef  = useRef(true);
 
-  const [phase,    setPhase]    = useState("alt");   // "alt" | "main"
-  const [isMuted,  setIsMuted]  = useState(true);
-  const [audioReady, setAudioReady] = useState(false);
+  const [phase,   setPhase]   = useState("alt");  // "alt" | "main"
+  const [isMuted, setIsMuted] = useState(true);
+
+  // Keep ref in sync with state
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
   // ── Video: when alt ends, switch to main (looping) ──────────────────
   const handleVideoEnded = useCallback(() => {
-    if (phase === "alt") {
-      setPhase("main");
-    }
+    if (phase === "alt") setPhase("main");
   }, [phase]);
 
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    vid.src = phase === "alt" ? HERO_VIDEO_ALT : HERO_VIDEO_MAIN;
+    vid.src  = phase === "alt" ? HERO_VIDEO_ALT : HERO_VIDEO_MAIN;
     vid.loop = phase === "main";
     vid.load();
-    vid.play().catch(() => {}); // silently ignore autoplay block
+    vid.play().catch(() => {});
   }, [phase]);
 
-  // ── Audio: init Web Audio on first user interaction ──────────────────
+  // ── Audio: lazy-init Web Audio context ──────────────────────────────
   const initAudio = useCallback(() => {
-    if (audioCtxRef.current) return;
+    if (audioCtxRef.current) return audioCtxRef.current;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = ctx;
-    audioNodes.current = createAmbientAudio(ctx);
-    setAudioReady(true);
+    audioNodes.current  = createAmbientAudio(ctx);
+    return ctx;
   }, []);
 
-  // Try to auto-start audio (works on some browsers after page interaction)
-  useEffect(() => {
-    const tryAutoInit = () => {
-      initAudio();
-      if (!isMuted && audioCtxRef.current?.state === "suspended") {
-        audioCtxRef.current.resume();
-      }
-    };
-    document.addEventListener("click",     tryAutoInit, { once: true });
-    document.addEventListener("touchstart", tryAutoInit, { once: true });
-    return () => {
-      document.removeEventListener("click",     tryAutoInit);
-      document.removeEventListener("touchstart", tryAutoInit);
-    };
-  }, [initAudio, isMuted]);
+  // ── Fade helpers ─────────────────────────────────────────────────────
+  const fadeIn = useCallback(() => {
+    const ctx   = audioCtxRef.current;
+    const nodes = audioNodes.current;
+    if (!ctx || !nodes) return;
+    ctx.resume().then(() => {
+      nodes.masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      nodes.masterGain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.5);
+    });
+  }, []);
 
-  // Cleanup on unmount
+  const fadeOut = useCallback(() => {
+    const ctx   = audioCtxRef.current;
+    const nodes = audioNodes.current;
+    if (!ctx || !nodes) return;
+    nodes.masterGain.gain.cancelScheduledValues(ctx.currentTime);
+    nodes.masterGain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
+    setTimeout(() => {
+      if (audioCtxRef.current?.state === "running") audioCtxRef.current.suspend();
+    }, 1400);
+  }, []);
+
+  // ── IntersectionObserver — hero >10% visible → play; <10% → pause ───
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // Entering view: initialise audio engine on very first observation
+          initAudio();
+          // Only play if the user has not manually muted
+          if (!isMutedRef.current) fadeIn();
+        } else {
+          // Left view: always silence — regardless of mute toggle state
+          fadeOut();
+        }
+      },
+      { threshold: 0.1 }   // fires when 10% of section crosses the viewport edge
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [initAudio, fadeIn, fadeOut]); // stable callbacks — runs once
+
+  // ── Cleanup on unmount ───────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (audioNodes.current?.scheduler) clearInterval(audioNodes.current.scheduler);
@@ -327,30 +360,24 @@ const Hero = () => {
     };
   }, []);
 
-  // ── Mute/Unmute ───────────────────────────────────────────────────────
+  // ── Manual mute / unmute toggle ──────────────────────────────────────
   const toggleMute = () => {
+    // Always init on first user gesture (satisfies browser autoplay policy)
     initAudio();
-    const ctx = audioCtxRef.current;
-    const nodes = audioNodes.current;
-    if (!ctx || !nodes) return;
-
     if (isMuted) {
-      // Unmute: resume context + fade in master gain
-      ctx.resume().then(() => {
-        nodes.masterGain.gain.cancelScheduledValues(ctx.currentTime);
-        nodes.masterGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 1.2);
-      });
       setIsMuted(false);
+      fadeIn();   // start music immediately on unmute
     } else {
-      // Mute: fade out gracefully
-      nodes.masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
-      setTimeout(() => ctx.suspend(), 900);
       setIsMuted(true);
+      fadeOut();  // gracefully silence on mute
     }
   };
 
   return (
-    <section className="relative w-full h-screen min-h-[640px] overflow-hidden -mt-[56px]">
+    <section
+      ref={sectionRef}
+      className="relative w-full h-screen min-h-[640px] overflow-hidden -mt-[56px]"
+    >
 
       {/* -- Mobile fallback poster --------------------------------- */}
       <div
@@ -512,7 +539,7 @@ const Hero = () => {
         </motion.div>
       </div>
 
-      {/* -- Sound toggle button (bottom-right) --------------------- */}
+      {/* -- Sound toggle (bottom-right) ----------------------------- */}
       <AnimatePresence>
         <motion.button
           key="sound-toggle"
@@ -523,34 +550,32 @@ const Hero = () => {
           title={isMuted ? "Enable ambient music" : "Mute ambient music"}
           className="absolute bottom-8 right-6 z-20 flex items-center gap-2"
           style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.18)",
+            background:   isMuted ? "rgba(255,255,255,0.08)"    : "rgba(232,0,61,0.15)",
+            border:       isMuted ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(232,0,61,0.35)",
             backdropFilter: "blur(10px)",
             borderRadius: "100px",
-            padding: "8px 14px",
-            color: "rgba(255,255,255,0.60)",
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            cursor: "pointer",
-            transition: "background 0.2s, color 0.2s",
+            padding:      "8px 14px",
+            color:        isMuted ? "rgba(255,255,255,0.60)"    : "rgba(255,100,120,0.95)",
+            fontSize:     "11px",
+            fontWeight:   600,
+            letterSpacing:"0.06em",
+            textTransform:"uppercase",
+            cursor:       "pointer",
+            transition:   "background 0.3s, color 0.3s, border 0.3s",
           }}
           whileHover={{
-            background: "rgba(255,255,255,0.15)",
+            background: isMuted ? "rgba(255,255,255,0.15)" : "rgba(232,0,61,0.25)",
             color: "rgba(255,255,255,0.95)",
           }}
           whileTap={{ scale: 0.94 }}
         >
           {isMuted ? (
-            /* Muted icon */
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
               <line x1="23" y1="9" x2="17" y2="15"/>
               <line x1="17" y1="9" x2="23" y2="15"/>
             </svg>
           ) : (
-            /* Sound on icon with animated bars */
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
