@@ -24,45 +24,48 @@ const scrollToDeals = () => {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// ── Luxury Travel Ambient Music via Web Audio API ─────────────────────
-// Grand piano timbre (additive harmonics + ADSR), lush string pads,
-// gentle bass, sparse high melody, long hall reverb, stereo chorus.
-// Chord progression in Db major — sounds like a 5-star hotel lobby.
-// Bar:  Dbmaj9 → Bbm9 → Gbmaj7 → Ab7sus4 (repeating every ~24 s)
+// ── Birds-style Indie-Pop Ambient Music via Web Audio API ─────────────
+// Original composition inspired by the style of atmospheric indie-pop.
+// Key: A major  |  BPM: 76  |  Progression: I → VIm → IV → V
+// Layers: arpeggiated piano (8th notes) + warm synth pad + sub-bass
+//         + soft kick pulse + shimmer bell overtones + plate reverb
 
 const NOTE = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 
-// Db major chord set — MIDI note numbers
-// Dbmaj9: Db3 F3 Ab3 C4 Eb4
-// Bbm9:   Bb2 Db3 F3 Ab3 C4
-// Gbmaj7: Gb2 Bb2 Db3 F3 Bb3
-// Ab7sus4:Ab2 Db3 Eb3 Ab3 Bb3
-const CHORD_SETS = [
-  [49, 53, 56, 60, 63].map(NOTE),  // Dbmaj9
-  [46, 49, 53, 56, 60].map(NOTE),  // Bbm9
-  [42, 46, 49, 53, 58].map(NOTE),  // Gbmaj7
-  [44, 49, 51, 56, 58].map(NOTE),  // Ab7sus4
+// A major — I VI IV V  (MIDI root, 3rd, 5th, octave for each chord)
+// A maj:  A3  C#4 E4  A4   → [57, 61, 64, 69]
+// F# min: F#3 A3  C#4 F#4  → [54, 57, 61, 66]
+// D maj:  D3  F#3 A3  D4   → [50, 54, 57, 62]
+// E maj:  E3  G#3 B3  E4   → [52, 56, 59, 64]
+const CHORDS = [
+  [57, 61, 64, 69].map(NOTE),   // A major
+  [54, 57, 61, 66].map(NOTE),   // F# minor
+  [50, 54, 57, 62].map(NOTE),   // D major
+  [52, 56, 59, 64].map(NOTE),   // E major
 ];
 
-// Sparse high melody — runs over top of chords (MIDI, relative beat offset)
-const MELODY_LINES = [
-  [[72, 0], [75, 2.5], [77, 5], [75, 7]],   // over Dbmaj9
-  [[70, 0], [72, 3],   [70, 5.5]],           // over Bbm9
-  [[66, 0], [70, 2],   [71, 5], [70, 7]],   // over Gbmaj7
-  [[68, 0], [70, 2.5], [68, 6]],            // over Ab7sus4
+// 8th-note arpeggio shape for each chord: indices into chord notes array
+// Goes up then gently down — classic bright indie-pop arpeggio feel
+const ARP_SHAPE = [0, 1, 2, 3, 2, 1, 3, 1];   // 8 × 8th notes per bar
+
+// High shimmer melody (MIDI, beat-offset within the 2-bar chord window)
+const SHIMMER_LINES = [
+  [[81, 0.4], [83, 1.6], [85, 3.2], [83, 5.0]],   // over A
+  [[78, 0.4], [81, 2.0], [78, 4.4]],              // over F#m
+  [[74, 0.0], [78, 1.6], [79, 3.6], [78, 5.2]],   // over D
+  [[76, 0.4], [78, 2.0], [76, 4.0], [74, 5.6]],   // over E
 ];
 
-function buildReverb(ctx, decaySec = 4.5) {
+function buildReverb(ctx, decaySec = 2.8) {
   const conv = ctx.createConvolver();
-  const rate  = ctx.sampleRate;
-  const len   = Math.floor(rate * decaySec);
-  const buf   = ctx.createBuffer(2, len, rate);
+  const rate = ctx.sampleRate;
+  const len  = Math.floor(rate * decaySec);
+  const buf  = ctx.createBuffer(2, len, rate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
     for (let i = 0; i < len; i++) {
-      // Exponential decay + slight early-reflection bump at ~40 ms
-      const earlyBoost = i < rate * 0.04 ? 1.6 : 1;
-      d[i] = (Math.random() * 2 - 1) * earlyBoost * Math.pow(1 - i / len, 2.2);
+      const earlyBoost = i < rate * 0.03 ? 2.0 : 1;   // bright early reflections
+      d[i] = (Math.random() * 2 - 1) * earlyBoost * Math.pow(1 - i / len, 1.8);
     }
   }
   conv.buffer = buf;
@@ -70,196 +73,186 @@ function buildReverb(ctx, decaySec = 4.5) {
 }
 
 function createAmbientAudio(ctx) {
-  // ── Master chain: dry → chorus → reverb → limiter → out ─────────────
+  // ── Master bus ────────────────────────────────────────────────────────
   const masterGain = ctx.createGain();
   masterGain.gain.setValueAtTime(0, ctx.currentTime);
-  masterGain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 4);
+  masterGain.gain.linearRampToValueAtTime(0.20, ctx.currentTime + 3.5);
   masterGain.connect(ctx.destination);
 
-  // Soft limiter (DynamicsCompressor as brick-wall)
   const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -3;
-  limiter.knee.value      = 2;
-  limiter.ratio.value     = 20;
+  limiter.threshold.value = -4;
+  limiter.knee.value      = 3;
+  limiter.ratio.value     = 16;
   limiter.attack.value    = 0.001;
-  limiter.release.value   = 0.15;
+  limiter.release.value   = 0.12;
   limiter.connect(masterGain);
 
-  // Hall reverb (long, 4.5 s decay)
-  const reverb     = buildReverb(ctx, 4.5);
+  // Plate reverb — brighter / shorter than hall, suits indie-pop
+  const reverb = buildReverb(ctx, 2.8);
   reverb.connect(limiter);
-
-  const reverbSend = ctx.createGain();
-  reverbSend.gain.value = 0.5;
-  reverbSend.connect(reverb);
+  const revSend = ctx.createGain();
+  revSend.gain.value = 0.42;
+  revSend.connect(reverb);
 
   const drySend = ctx.createGain();
-  drySend.gain.value = 0.5;
+  drySend.gain.value = 0.58;
   drySend.connect(limiter);
 
-  // Stereo chorus (two detuned delays panned L/R)
-  const chorusL   = ctx.createDelay(0.05);
-  const chorusR   = ctx.createDelay(0.05);
-  chorusL.delayTime.value = 0.027;
-  chorusR.delayTime.value = 0.031;
-  const panL = ctx.createStereoPanner(); panL.pan.value = -0.6;
-  const panR = ctx.createStereoPanner(); panR.pan.value =  0.6;
-  const chorusGain = ctx.createGain(); chorusGain.gain.value = 0.18;
-  chorusL.connect(panL); panL.connect(chorusGain);
-  chorusR.connect(panR); panR.connect(chorusGain);
-  chorusGain.connect(limiter);
+  // Stereo widener (subtle ping-pong on the arp)
+  const pingL = ctx.createDelay(0.06); pingL.delayTime.value = 0.018;
+  const pingR = ctx.createDelay(0.06); pingR.delayTime.value = 0.024;
+  const pL = ctx.createStereoPanner(); pL.pan.value = -0.55;
+  const pR = ctx.createStereoPanner(); pR.pan.value =  0.55;
+  const pingGain = ctx.createGain(); pingGain.gain.value = 0.14;
+  pingL.connect(pL); pL.connect(pingGain);
+  pingR.connect(pR); pR.connect(pingGain);
+  pingGain.connect(limiter);
 
-  // Helper: route a gain node to all buses
-  const routeTo = (envNode, dryAmt = 0.5, revAmt = 0.5) => {
-    envNode.connect(drySend);
-    envNode.connect(reverbSend);
-    envNode.connect(chorusL);
-    envNode.connect(chorusR);
-  };
-
-  // ── Grand piano note (additive harmonics) ────────────────────────────
-  // Layers: fundamental + octave + 5th harmonic + 3rd harmonic, each with
-  // slightly different decay to mimic piano string sympathetic resonance.
-  const playPianoNote = (freq, startTime, peakGain, duration) => {
-    const harmonics = [
-      { ratio: 1,    gain: peakGain,         decay: duration * 0.9 },
-      { ratio: 2,    gain: peakGain * 0.38,  decay: duration * 0.55 },
-      { ratio: 3,    gain: peakGain * 0.18,  decay: duration * 0.35 },
-      { ratio: 4,    gain: peakGain * 0.09,  decay: duration * 0.22 },
-      { ratio: 5,    gain: peakGain * 0.05,  decay: duration * 0.18 },
-    ];
-
-    harmonics.forEach(({ ratio, gain: hGain, decay }) => {
+  // ── Piano note — additive harmonics (piano-like timbre) ──────────────
+  const playPiano = (freq, t, peakGain, dur) => {
+    // 1st, 2nd, 3rd, 4th, 5th partial — each decays at different rate
+    [[1, 1.0, dur*0.85], [2, 0.40, dur*0.50], [3, 0.20, dur*0.30],
+     [4, 0.10, dur*0.18], [5, 0.05, dur*0.12]].forEach(([ratio, rel, decay]) => {
       const osc = ctx.createOscillator();
-      osc.type = ratio === 1 ? "triangle" : "sine";
+      osc.type  = ratio === 1 ? "triangle" : "sine";
       osc.frequency.value = freq * ratio;
-
       const env = ctx.createGain();
-      env.gain.setValueAtTime(0, startTime);
-      env.gain.linearRampToValueAtTime(hGain, startTime + 0.01);   // fast attack
-      env.gain.setTargetAtTime(hGain * 0.35, startTime + 0.02, decay * 0.08); // decay
-      env.gain.setTargetAtTime(0.0001, startTime + decay * 0.55, decay * 0.25); // release
-
+      const g = peakGain * rel;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(g, t + 0.008);           // fast attack
+      env.gain.setTargetAtTime(g * 0.3, t + 0.012, decay * 0.07); // decay
+      env.gain.setTargetAtTime(0.00001, t + decay * 0.5, decay * 0.22); // release
       osc.connect(env);
-      routeTo(env);
-      osc.start(startTime);
-      osc.stop(startTime + duration + 0.5);
+      env.connect(drySend); env.connect(revSend);
+      env.connect(pingL);   env.connect(pingR);
+      osc.start(t); osc.stop(t + dur + 0.4);
     });
   };
 
-  // ── String pad (slow attack sine cluster) ───────────────────────────
-  const playPad = (freqs, startTime, duration) => {
+  // ── Synth pad — warm, slowly swelling (two detuned sines per note) ───
+  const playPad = (freqs, t, dur) => {
     freqs.forEach((freq, i) => {
-      // Two slightly detuned sines per note — "ensemble" effect
-      [-1.5, 1.5].forEach((detuneCents) => {
+      [-2, 2].forEach((cents) => {
         const osc = ctx.createOscillator();
-        osc.type = "sine";
-        osc.frequency.value = freq * Math.pow(2, detuneCents / 1200);
-
+        osc.type  = "sine";
+        osc.frequency.value = freq * Math.pow(2, cents / 1200);
         const env = ctx.createGain();
-        env.gain.setValueAtTime(0, startTime);
-        env.gain.linearRampToValueAtTime((0.04 - i * 0.004), startTime + 1.8); // slow attack
-        env.gain.setValueAtTime((0.04 - i * 0.004), startTime + duration - 1.2);
-        env.gain.linearRampToValueAtTime(0.0001, startTime + duration + 0.8);
-
-        const padFilter = ctx.createBiquadFilter();
-        padFilter.type      = "lowpass";
-        padFilter.frequency.value = 900 + i * 120;
-        padFilter.Q.value   = 0.5;
-
-        osc.connect(padFilter);
-        padFilter.connect(env);
-        env.connect(reverbSend); // pads live mostly in reverb
-        env.connect(chorusL);
-        env.connect(chorusR);
-        osc.start(startTime);
-        osc.stop(startTime + duration + 1.5);
+        const peak = 0.035 - i * 0.005;
+        env.gain.setValueAtTime(0, t);
+        env.gain.linearRampToValueAtTime(peak, t + 2.2);          // slow swell
+        env.gain.setValueAtTime(peak, t + dur - 1.4);
+        env.gain.linearRampToValueAtTime(0.00001, t + dur + 1.0);
+        const lpf = ctx.createBiquadFilter();
+        lpf.type = "lowpass"; lpf.frequency.value = 800 + i * 100; lpf.Q.value = 0.4;
+        osc.connect(lpf); lpf.connect(env);
+        env.connect(revSend); env.connect(pingL); env.connect(pingR);
+        osc.start(t); osc.stop(t + dur + 1.5);
       });
     });
   };
 
-  // ── Bass note (warm sub-bass, one per chord) ─────────────────────────
-  const playBass = (freq, startTime, duration) => {
+  // ── Sub-bass — one sine per chord, warm and anchoring ────────────────
+  const playBass = (freq, t, dur) => {
+    const osc = ctx.createOscillator();
+    osc.type  = "sine";
+    osc.frequency.value = freq * 0.5;   // octave below root
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.06, t + 0.12);
+    env.gain.exponentialRampToValueAtTime(0.03, t + dur * 0.45);
+    env.gain.linearRampToValueAtTime(0.00001, t + dur);
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = "lowpass"; lpf.frequency.value = 140;
+    osc.connect(lpf); lpf.connect(env);
+    env.connect(drySend); env.connect(revSend);
+    osc.start(t); osc.stop(t + dur + 0.2);
+  };
+
+  // ── Soft kick pulse — sine thump, one per beat ───────────────────────
+  const playKick = (t) => {
     const osc = ctx.createOscillator();
     osc.type = "sine";
-    osc.frequency.value = freq * 0.5; // one octave below chord root
-
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.08);
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0, startTime);
-    env.gain.linearRampToValueAtTime(0.055, startTime + 0.08);
-    env.gain.exponentialRampToValueAtTime(0.028, startTime + duration * 0.4);
-    env.gain.linearRampToValueAtTime(0.0001, startTime + duration);
-
-    // High-cut so bass stays warm, not boomy
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.12, t + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.00001, t + 0.28);
     const lpf = ctx.createBiquadFilter();
-    lpf.type = "lowpass";
-    lpf.frequency.value = 160;
-    osc.connect(lpf);
-    lpf.connect(env);
-    env.connect(drySend);
-    env.connect(reverbSend);
-    osc.start(startTime);
-    osc.stop(startTime + duration + 0.3);
+    lpf.type = "lowpass"; lpf.frequency.value = 180;
+    osc.connect(lpf); lpf.connect(env); env.connect(drySend);
+    osc.start(t); osc.stop(t + 0.35);
   };
 
-  // ── Melody note (high, sparse, bell-like) ───────────────────────────
-  const playMelody = (freq, startTime) => {
-    const PARTIALS = [1, 2.756, 5.404]; // bell-like inharmonic series
-    PARTIALS.forEach((ratio, i) => {
+  // ── Bell shimmer — sparse, high, slightly inharmonic ─────────────────
+  const playShimmer = (freq, t) => {
+    [1, 2.76, 5.4].forEach((ratio, i) => {
       const osc = ctx.createOscillator();
-      osc.type = "sine";
+      osc.type  = "sine";
       osc.frequency.value = freq * ratio;
-
       const env = ctx.createGain();
-      const peak = [0.06, 0.02, 0.008][i];
-      env.gain.setValueAtTime(0, startTime);
-      env.gain.linearRampToValueAtTime(peak, startTime + 0.008);
-      env.gain.exponentialRampToValueAtTime(0.0001, startTime + [3.2, 1.8, 1.0][i]);
-
-      osc.connect(env);
-      env.connect(reverbSend); // melody is mostly wet
-      env.connect(drySend);
-      osc.start(startTime);
-      osc.stop(startTime + 4);
+      const peaks = [0.05, 0.018, 0.006];
+      const decays = [2.8, 1.5, 0.8];
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(peaks[i], t + 0.006);
+      env.gain.exponentialRampToValueAtTime(0.00001, t + decays[i]);
+      osc.connect(env); env.connect(revSend); env.connect(drySend);
+      osc.start(t); osc.stop(t + decays[i] + 0.2);
     });
   };
 
-  // ── Scheduler ────────────────────────────────────────────────────────
-  const CHORD_DUR   = 6;   // each chord lasts 6 seconds
-  const LOOK_AHEAD  = 0.3; // schedule 300 ms ahead
-  let chordIndex    = 0;
-  let nextChordTime = ctx.currentTime + 0.8;
+  // ── Scheduler ─────────────────────────────────────────────────────────
+  const BPM        = 76;
+  const BEAT       = 60 / BPM;                  // 0.789 s
+  const EIGHTH     = BEAT / 2;                   // 0.395 s — arpeggio step
+  const CHORD_BARS = 2;                          // each chord lasts 2 bars
+  const CHORD_DUR  = CHORD_BARS * BEAT * 4;      // 4/4 time → ~6.32 s
+  const LOOK_AHEAD = 0.35;
 
-  const scheduleChord = (idx, startTime) => {
-    const freqs   = CHORD_SETS[idx % CHORD_SETS.length];
-    const melody  = MELODY_LINES[idx % MELODY_LINES.length];
+  let chordIdx   = 0;
+  let nextTime   = ctx.currentTime + 0.6;
 
-    // String pad — all notes, full duration
-    playPad(freqs, startTime, CHORD_DUR);
+  const scheduleChord = (idx, t) => {
+    const notes   = CHORDS[idx % CHORDS.length];
+    const shimmer = SHIMMER_LINES[idx % SHIMMER_LINES.length];
 
-    // Piano — arpeggiate bottom 3 notes gently (stagger 80 ms each)
-    freqs.slice(0, 4).forEach((f, i) => {
-      playPianoNote(f, startTime + i * 0.08, 0.10 - i * 0.018, CHORD_DUR * 0.75);
-    });
+    // Pad — full chord duration
+    playPad(notes, t, CHORD_DUR);
 
-    // Bass — root note
-    playBass(freqs[0], startTime, CHORD_DUR);
+    // Bass
+    playBass(notes[0], t, CHORD_DUR);
 
-    // Sparse melody
-    melody.forEach(([midi, offset]) => {
-      if (startTime + offset < ctx.currentTime - 0.05) return;
-      playMelody(NOTE(midi), startTime + offset);
+    // Arpeggiated piano — 8th notes × 2 bars = 16 hits
+    const totalEighths = CHORD_BARS * 8;
+    for (let s = 0; s < totalEighths; s++) {
+      const noteIdx = ARP_SHAPE[s % ARP_SHAPE.length];
+      const noteT   = t + s * EIGHTH;
+      // Accent beat 1 slightly
+      const accent  = (s % 8 === 0) ? 1.2 : 1.0;
+      playPiano(notes[noteIdx], noteT, 0.092 * accent, EIGHTH * 2.2);
+    }
+
+    // Soft kick on beats 1 & 3 of each bar
+    for (let bar = 0; bar < CHORD_BARS; bar++) {
+      playKick(t + bar * BEAT * 4);             // beat 1
+      playKick(t + bar * BEAT * 4 + BEAT * 2);  // beat 3
+    }
+
+    // Shimmer melody
+    shimmer.forEach(([midi, offset]) => {
+      if (t + offset < ctx.currentTime - 0.05) return;
+      playShimmer(NOTE(midi), t + offset);
     });
   };
 
   const scheduler = setInterval(() => {
     if (ctx.state === "closed") { clearInterval(scheduler); return; }
-    while (nextChordTime < ctx.currentTime + LOOK_AHEAD + CHORD_DUR) {
-      scheduleChord(chordIndex, nextChordTime);
-      chordIndex++;
-      nextChordTime += CHORD_DUR;
+    while (nextTime < ctx.currentTime + LOOK_AHEAD + CHORD_DUR) {
+      scheduleChord(chordIdx, nextTime);
+      chordIdx++;
+      nextTime += CHORD_DUR;
     }
-  }, 100);
+  }, 80);
 
   return { masterGain, scheduler };
 }
