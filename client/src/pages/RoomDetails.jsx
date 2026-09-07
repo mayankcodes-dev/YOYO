@@ -224,6 +224,8 @@ const RoomDetails = () => {
               {room.category}
             </span>
           )}
+          {/* ── Live viewers badge ── */}
+          <LiveViewers roomId={id} />
         </div>
 
         <div className="flex flex-wrap items-center gap-5">
