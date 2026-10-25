@@ -5,7 +5,7 @@ service: yoyo-backend
 
 provider:
   name: aws
-  runtime: nodejs22.x
+  runtime: nodejs20.x          # LTS; nodejs22.x causes Serverless Framework validator warning
   region: ap-south-1
   stage: ${opt:stage, 'prod'}
   architecture: arm64
@@ -30,7 +30,8 @@ provider:
     STRIPE_PUBLISHABLE_KEY: ${ssm:/yoyo/prod/STRIPE_PUBLISHABLE_KEY}
     STRIPE_SECRET_KEY:     ${ssm:/yoyo/prod/STRIPE_SECRET_KEY}
     STRIPE_WEBHOOK_SECRET: ${ssm:/yoyo/prod/STRIPE_WEBHOOK_SECRET}
-    GEMINI_API_KEY:          ${ssm:/yoyo/prod/GEMINI_API_KEY}
+    GEMINI_API_KEY:        ${ssm:/yoyo/prod/GEMINI_API_KEY}
+    UPSTASH_REDIS_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_URL}
 
   iam:
     role:
@@ -41,6 +42,17 @@ provider:
             - ssm:GetParameters
           Resource:
             - arn:aws:ssm:ap-south-1:*:parameter/yoyo/prod/*
+        # H-3: EventBridge schedule management (needed for cron functions)
+        - Effect: Allow
+          Action:
+            - events:PutRule
+            - events:PutTargets
+            - events:DescribeRule
+            - events:ListRules
+            - events:DeleteRule
+            - events:RemoveTargets
+          Resource:
+            - arn:aws:events:ap-south-1:*:rule/*
 
 functions:
   api:
