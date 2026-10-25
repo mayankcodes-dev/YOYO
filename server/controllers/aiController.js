@@ -120,12 +120,18 @@ export const aiChat = async (req, res) => {
 
         // Map history to Gemini Content format.
         // Gemini requires history to START with role 'user' — drop any leading 'model' entries.
+        // Also drop trailing model messages (Gemini requires history to END with 'model' only
+        // if there's a preceding 'user' turn — safest to send only complete user/model pairs).
         const rawHistory = history.slice(-8).map(h => ({
             role:  h.role === 'maya' ? 'model' : 'user',
             parts: [{ text: h.content }],
         }));
         const firstUserIdx  = rawHistory.findIndex(m => m.role === 'user');
-        const geminiHistory = firstUserIdx > 0 ? rawHistory.slice(firstUserIdx) : rawHistory;
+        // If no user messages at all in history (e.g. first message), pass empty history
+        // and let sendMessage carry the first user turn — Gemini handles this correctly.
+        const geminiHistory = firstUserIdx <= 0
+            ? (firstUserIdx === 0 ? rawHistory : [])
+            : rawHistory.slice(firstUserIdx);
 
         const reply = await geminiRequest(systemContext, async (model) => {
             const chat   = model.startChat({ history: geminiHistory });
@@ -174,10 +180,20 @@ Rules:
             async (model) => {
                 const result = await model.generateContent(prompt);
                 const raw    = result.response.text()?.trim() || '{}';
-                const match  = raw.match(/\{[\s\S]*\}/);
-                return match ? JSON.parse(match[0]) : {};
+                // Strip markdown code fences (```json ... ``` or ``` ... ```)
+                const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+                const match    = stripped.match(/\{[\s\S]*\}/);
+                try {
+                    return match ? JSON.parse(match[0]) : {};
+                } catch {
+                    console.warn('[AI] parse-search JSON.parse failed, raw:', raw.slice(0, 200));
+                    return {};
+                }
             }
         );
+        if (!filters || Object.keys(filters).length === 0) {
+            return fail(res, 'Could not extract filters from query — try being more specific');
+        }
         ok(res, { filters });
     } catch (error) {
         console.error('[AI] parse-search error:', error.message);

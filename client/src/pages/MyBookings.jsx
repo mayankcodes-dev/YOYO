@@ -439,7 +439,7 @@ const MyBookings = () => {
         </p>
       </motion.div>
 
-      <div className="max-w-4xl">
+      <div className="max-w-5xl mx-auto">
         {loading && (
           <div className="space-y-5">{[1, 2, 3].map((i) => <SkeletonBooking key={i} />)}</div>
         )}

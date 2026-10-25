@@ -4,9 +4,6 @@ node_modules/
 .pnp
 .pnp.js
 
-# LLM Project Context (keep local only — too large for repo)
-AI_CONTEXT.md
-
 # Environment files — ALL contain real secrets, never commit
 # Secrets now live in Vercel env vars (frontend) and AWS SSM / Lambda env (backend)
 # client/.env.production was deleted — replaced by Vercel project env vars
@@ -42,9 +39,11 @@ Thumbs.db
 *.swp
 *.swo
 
-# AI / dev context
+# AI / dev context files (LLM workspace — keep local only)
 .ai-context.md
-/.ai
+AI_CONTEXT.md
+.ai/
+docs/
 
 # Serverless Framework deployment artifacts (large zip — never commit)
 .serverless/

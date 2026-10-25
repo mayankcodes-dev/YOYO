@@ -52,10 +52,11 @@ const App = () => {
   const { pathname } = useLocation();
   const { showHotelReg } = useAppContext();
 
-  const isOwnerPath = pathname.startsWith("/owner");
-  const isAdminPath = pathname.startsWith("/admin");
-  const isAuthPage  = pathname === "/login" || pathname === "/register";
-  const hideShell   = isOwnerPath || isAdminPath || isAuthPage;
+  const isOwnerPath  = pathname.startsWith("/owner");
+  const isAdminPath  = pathname.startsWith("/admin");
+  const isAuthPage   = pathname === "/login" || pathname === "/register";
+  const isLoaderPage = pathname.startsWith("/loader");
+  const hideShell    = isOwnerPath || isAdminPath || isAuthPage || isLoaderPage;
 
   return (
     <HelmetProvider>
