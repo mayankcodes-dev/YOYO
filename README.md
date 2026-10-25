@@ -1,6 +1,6 @@
-﻿# YoYo Rooms - Hotel Booking Platform
+# YoYo Rooms - Hotel Booking Platform
 
-**Production-grade full-stack hotel booking platform - MERN + AWS Lambda + Gemini AI**
+**Production-grade full-stack hotel booking platform - MERN + AWS EC2/Lambda + Gemini AI**
 
 [Live Demo](https://yoyo.mayankcodes.dev) | [Repository](https://github.com/mayankcodes-dev/YOYO) | [Getting Started](#getting-started) | [API Reference](#api-reference) | [Deployment](#deployment)
 
@@ -8,7 +8,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white&style=flat-square)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white&style=flat-square)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white&style=flat-square)
-![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?logo=awslambda&logoColor=white&style=flat-square)
+![AWS](https://img.shields.io/badge/AWS-EC2_&_Lambda-FF9900?logo=amazonaws&logoColor=white&style=flat-square)
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white&style=flat-square)
 ![Gemini AI](https://img.shields.io/badge/Gemini-AI-4285F4?logo=google&logoColor=white&style=flat-square)
 
@@ -30,7 +30,7 @@ YoYo Rooms is an OYO-inspired hotel booking platform for India with two distinct
 
 | Travelers | Hotel Owners |
 |-----------|-------------|
-| Search and filter 10,000+ rooms by city, type, and price | Register a hotel and manage room listings |
+| Search and filter 225+ rooms by city, type, and price | Register a hotel and manage room listings |
 | Real-time date-range availability checking | Upload up to 5 room images via Cloudinary |
 | Book rooms with dynamic pricing (GST + service fee) | Toggle room availability instantly |
 | Pay via Stripe checkout or at the hotel | Revenue dashboard with booking analytics |
@@ -52,7 +52,21 @@ YoYo Rooms is an OYO-inspired hotel booking platform for India with two distinct
 - **PWA** - Installable as a home-screen app, offline-ready, responsive on all devices
 - **Reviews and Ratings** - Per-hotel review system
 - **Coupon System** - Discount codes with server-side validation
-- **10,000+ Hotels** - Seeded across 200+ Indian cities
+- **225+ Hotels** - Seeded across 150+ Indian cities
+- **Real-Time Updates** - Socket.io for live room viewer counts and instant hotel owner booking notifications
+- **Admin Panel** - Platform statistics, user role management, hotel oversight, review moderation
+- **Newsletter System** - Email subscription with welcome discount code via Brevo SMTP
+- **Dark Mode** - Dual-theme design system with zinc dark mode and clean white/red light mode
+- **Wishlist** - Save favorite rooms to profile with toggle heart button
+- **User Profile Management** - Edit profile, avatar upload with Cloudinary face-crop, phone number
+- **Background Jobs** - Auto-cancel unpaid bookings (15min cron), daily check-in email reminders (8AM IST cron)
+- **AI Review Summaries** - Gemini-powered hotel review summarization with 12-hour cache
+- **Live Viewer Count** - "X people viewing this room" social proof badge via Socket.io
+- **Owner Booking Alerts** - Real-time toast notifications when new bookings arrive
+- **Booking Cancellation** - 48-hour refund policy with modal UI
+- **QR Code Vouchers** - Booking confirmation with scannable QR code and print support
+- **GSAP Animations** - Draggable carousel, scroll progress, 3D flip countdown timers
+- **Framer Motion** - Route transitions, spring modals, micro-interactions
 
 ---
 
@@ -60,17 +74,17 @@ YoYo Rooms is an OYO-inspired hotel booking platform for India with two distinct
 
 ```
 Browser / PWA  (yoyo.mayankcodes.dev on Vercel)
-React 19 + Vite + Tailwind CSS v4
-         |
-         | HTTPS via axios
-         v
-AWS API Gateway HTTP API v2
+React 19 + Vite + Tailwind CSS v4 + Socket.io Client
+         |        ^
+         | HTTP   | WebSockets
+         v        |
+AWS API Gateway HTTP API v2 (or AWS EC2 Load Balancer)
 mcr5117577.execute-api.ap-south-1.amazonaws.com
          |
          v
-AWS Lambda  Node 22  arm64 Graviton  ap-south-1
-serverless-http wrapping Express 5
-Secrets via AWS SSM Parameter Store
+AWS Lambda Node 22 arm64 (Alternative: AWS EC2 + PM2)
+serverless-http wrapping Express 5 + Socket.io Server
+Secrets via AWS SSM Parameter Store (or EC2 Env)
     |         |          |          |
     v         v          v          v
 MongoDB   Cloudinary  Stripe   Google Gemini
@@ -93,17 +107,24 @@ YOYO/
 |   |-- .env.production     Production vars baked into bundle (committed)
 |   -- vercel.json         SPA rewrite rules
 |
-|-- server/                 Express API  (AWS Lambda)
+|-- server/                 Express API  (AWS Lambda / EC2)
 |   |-- configs/            MongoDB + Cloudinary init
 |   |-- controllers/        Business logic
-|   |-- middleware/         JWT protect, multer, rate-limit
+|   |-- events/             Socket.io event handlers
+|   |-- jobs/               Cron jobs
+|   |-- middleware/         JWT protect, multer, rate-limit, sanitizer
 |   |-- models/             Mongoose schemas
 |   |-- routes/             API routes
+|   |-- socket/             Socket.io initialization
+|   |-- utils/              Helper functions
 |   |-- lambda.js           serverless-http Lambda handler
 |   |-- serverless.yml      Serverless Framework config
-|   -- .env                Local secrets (prod uses SSM)
+|   -- .env                Local secrets (prod uses SSM/PM2)
 |
-|-- addHotels.js            Seed script - 10,000 hotels
+|-- __tests__/              Test suites
+|-- docs/                   Documentation
+|-- .ai/                    AI agent configuration files
+|-- addHotels.js            Seed script - 225+ hotels
 -- README.md
 ```
 
@@ -113,9 +134,9 @@ YOYO/
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 19, React Router 7, Tailwind CSS v4, Framer Motion, GSAP, Axios, Vite PWA |
-| **Backend** | Express 5, Mongoose 8, serverless-http, Multer 2, Nodemailer 7, jsonwebtoken, bcryptjs |
-| **Infrastructure** | Vercel (frontend), AWS Lambda arm64, AWS API Gateway v2, AWS SSM, ap-south-1 |
+| **Frontend** | React 19, React Router 7, Tailwind CSS v4, Framer Motion 12, GSAP 3.15, Recharts 3.8, Socket.io Client, qrcode.react, Leaflet + React-Leaflet, Axios, Vite PWA |
+| **Backend** | Express 5, Mongoose 8, socket.io, node-cron, hpp, express-mongo-sanitize, cookie-parser, serverless-http, Multer 2, Nodemailer 7, jsonwebtoken, bcryptjs |
+| **Infrastructure** | Vercel (frontend), Jenkins CI/CD, AWS EC2 + PM2 / AWS Lambda arm64, AWS API Gateway v2, AWS SSM, ap-south-1 |
 | **AI** | Google Gemini 3.6 Flash (chatbot + NLP search), fallback to gemini-3.5-flash-lite on 503 |
 | **Auth** | JWT access + refresh tokens, Google OAuth 2.0, bcrypt + server-side pepper |
 | **Payments** | Stripe Checkout + webhook verification |
@@ -185,7 +206,7 @@ cd client && npm install && npm run dev
 ### 4. Seed Database (optional)
 
 ```bash
-node addHotels.js    # adds 10,000 hotels across 200+ Indian cities
+node addHotels.js    # adds 225+ hotels across 150+ Indian cities
 ```
 
 ---
@@ -206,6 +227,16 @@ Protected routes require: Authorization: Bearer <token>
 | GET | /api/auth/me | Yes | Current user profile |
 | POST | /api/auth/refresh | No | Refresh access token |
 
+### User Profile
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/user | Yes | Current user data |
+| PATCH | /api/user/profile | Yes | Update profile and avatar |
+| POST | /api/user/wishlist/:roomId | Yes | Toggle room in wishlist |
+| GET | /api/user/wishlist | Yes | Get saved rooms |
+| POST | /api/user/store-recent-search | Yes | Save recent search city |
+
 ### Rooms and Hotels
 
 | Method | Endpoint | Auth | Description |
@@ -225,6 +256,31 @@ Protected routes require: Authorization: Bearer <token>
 | GET | /api/bookings/user | Yes | User booking history |
 | GET | /api/bookings/hotel | Yes | Owner bookings and revenue |
 | POST | /api/bookings/stripe-payment | Yes | Create Stripe checkout session |
+| POST | /api/bookings/validate-coupon | Yes | Validate coupon code |
+| PATCH | /api/bookings/:id/cancel | Yes | Cancel booking (48h policy) |
+| PATCH | /api/bookings/:id/status | Yes | Owner update booking status |
+| POST | /api/bookings/verify-payment | Yes | Verify Stripe payment |
+
+### Reviews
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/reviews | Yes | Submit review (requires past stay) |
+| GET | /api/reviews/hotel/:hotelId | No | Get reviews with ratings |
+| PATCH | /api/reviews/:id/response | Yes | Owner reply to review |
+| DELETE | /api/reviews/:id | Yes | Delete review (author or admin) |
+
+### Admin
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/admin/stats | Admin | Platform KPIs |
+| GET | /api/admin/users | Admin | All users |
+| PATCH | /api/admin/users/:id | Admin | Change user role |
+| GET | /api/admin/hotels | Admin | All hotels |
+| GET | /api/admin/bookings | Admin | Recent bookings |
+| GET | /api/admin/reviews | Admin | All reviews |
+| DELETE | /api/admin/reviews/:id | Admin | Delete review |
 
 ### AI - Maya Chatbot
 
@@ -232,6 +288,14 @@ Protected routes require: Authorization: Bearer <token>
 |--------|----------|-------------|
 | POST | /api/ai/chat | Multi-turn chat with Gemini 3.6 Flash |
 | POST | /api/ai/parse-search | Natural language to structured room filters |
+| GET | /api/ai/review-summary/:hotelId | AI review summary |
+
+### Newsletter
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/newsletter/subscribe | No | Subscribe to newsletter |
+| POST | /api/newsletter/unsubscribe | No | Unsubscribe |
 
 ### Webhooks
 
@@ -242,6 +306,43 @@ Protected routes require: Authorization: Bearer <token>
 ---
 
 ## Data Models
+
+### User
+
+| Field | Type | Notes |
+|-------|------|-------|
+| username | String | Required |
+| email | String | Unique |
+| password | String | Optional (Google OAuth users) |
+| image | String | Avatar URL |
+| role | Enum | user, hotelOwner, admin |
+| googleId | String | Sparse indexed |
+| wishlist | Array | Refs to Room |
+| recentSearchedCities | Array | Last 3 cities |
+
+### Hotel
+
+| Field | Type | Notes |
+|-------|------|-------|
+| name | String | Required |
+| address | String | Required |
+| contact | String | Required |
+| owner | Ref to User | Hotel owner |
+| city | String | Required |
+| image | String | Hotel photo |
+| description | String | Hotel description |
+
+### Room
+
+| Field | Type | Notes |
+|-------|------|-------|
+| hotel | Ref to Hotel | Associated hotel |
+| roomType | String | Single, Double, Suite, Deluxe |
+| pricePerNight | Number | INR |
+| amenities | Array | Wi-Fi, Pool, Gym, AC, etc |
+| images | Array | 1 to 5 Cloudinary CDN URLs |
+| isAvailable | Boolean | Controls listing visibility |
+| category | String | Budget, Premium, Luxury, Villa, Business |
 
 ### Booking
 
@@ -258,17 +359,24 @@ Protected routes require: Authorization: Bearer <token>
 | paymentMethod | String | Stripe or Pay At Hotel |
 | isPaid | Boolean | Payment confirmed by webhook |
 
-### Room
+### Review
 
 | Field | Type | Notes |
 |-------|------|-------|
-| hotel | Ref to Hotel | Associated hotel |
-| roomType | String | Single, Double, Suite, Deluxe |
-| pricePerNight | Number | INR |
-| amenities | Array | Wi-Fi, Pool, Gym, AC, etc |
-| images | Array | 1 to 5 Cloudinary CDN URLs |
-| isAvailable | Boolean | Controls listing visibility |
-| category | String | Budget, Standard, Luxury |
+| user | Ref to User | Reviewer |
+| hotel | Ref to Hotel | Reviewed property |
+| room | Ref to Room | Optional |
+| rating | Number | 1-5 stars |
+| comment | String | Max 1000 chars |
+| photos | Array | Cloudinary URLs |
+| ownerResponse | String | Hotel reply |
+
+### Newsletter
+
+| Field | Type | Notes |
+|-------|------|-------|
+| email | String | Unique subscriber |
+| active | Boolean | Subscription status |
 
 ---
 
@@ -304,13 +412,30 @@ All secrets live in AWS SSM Parameter Store under /yoyo/prod/ and are never in s
 - Timeout: 29 seconds
 - Region: ap-south-1 Mumbai for lowest latency in India
 
+### Backend - Alternative Deployment via AWS EC2 + PM2
+
+For applications requiring persistent connections (like Socket.io), deploying on EC2 is recommended over Lambda.
+
+```bash
+# On EC2 Instance
+cd server
+npm install
+npm install -g pm2
+pm2 start server.js --name "yoyo-api"
+pm2 save
+```
+
+### CI/CD Pipeline
+
+The project utilizes Jenkins CI/CD for automated testing and deployment. Configured jobs listen to repository changes and trigger appropriate test suites before deploying to staging/production environments.
+
 ---
 
 ## Scripts
 
 | Location | Command | Description |
 |----------|---------|-------------|
-| Root | node addHotels.js | Seed 10,000 hotels into MongoDB |
+| Root | node addHotels.js | Seed 225+ hotels into MongoDB |
 | Client | npm run dev | Vite dev server on port 5173 |
 | Client | npm run build | Production build |
 | Client | npm run lint | ESLint |

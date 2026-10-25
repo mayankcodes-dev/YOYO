@@ -9,8 +9,10 @@
 
 import { createServer }  from 'http';
 import { Server }        from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import mongoose          from 'mongoose';
 import connectDB         from './configs/db.js';
+import { createRedisClient } from './configs/redis.js';
 import { startScheduler } from './jobs/scheduler.js';
 import { initSocket }    from './socket/socketManager.js';
 import app               from './app.js';
@@ -42,6 +44,23 @@ const io = new Server(server, {
 });
 
 initSocket(io);
+
+// ── Redis adapter (enables multi-instance Socket.io) ─────────────
+const pubClient = createRedisClient();
+const subClient = createRedisClient();
+
+if (pubClient && subClient) {
+    Promise.all([pubClient.connect(), subClient.connect()])
+        .then(() => {
+            io.adapter(createAdapter(pubClient, subClient));
+            console.log('✅ Socket.io Redis adapter attached (Upstash)');
+        })
+        .catch((err) => {
+            console.warn('⚠️  Redis adapter failed — falling back to in-memory:', err.message);
+        });
+} else {
+    console.warn('⚠️  Redis not configured — Socket.io using in-memory adapter (single instance only)');
+}
 
 // Make io available to route handlers via app.locals
 app.locals.io = io;
