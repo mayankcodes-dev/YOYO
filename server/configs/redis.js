@@ -1,53 +1,36 @@
 /**
- * redis.js — Upstash Redis connection via ioredis
+ * redis.js — Upstash Redis via REST API (@upstash/redis)
+ *
+ * Why REST instead of ioredis (TCP)?
+ *   Lambda cold starts + ioredis TLS TCP handshake = 30s+ timeout.
+ *   Upstash REST client uses plain HTTPS — connects in ~50ms, no persistent
+ *   socket, perfect for serverless.
  *
  * Used by:
- *   • Socket.IO Redis adapter (pub/sub across instances)
- *   • Future: rate limiting, caching, session store
- *
- * Upstash requires TLS — we use rediss:// protocol.
- * Two separate clients are needed for the Socket.IO adapter (pub + sub).
+ *   • viewersController.js — live viewer counts per room
  */
 
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
-const REDIS_URL = process.env.UPSTASH_REDIS_URL;
-
-if (!REDIS_URL) {
-    console.warn('[Redis] ⚠️  UPSTASH_REDIS_URL not set — Redis features disabled');
-}
+let _client = null;
 
 /**
- * Create a new ioredis client connected to Upstash.
- * Each call returns a FRESH client (needed for pub/sub — subscriber
- * client can't be shared with command client).
+ * Returns a singleton Upstash Redis REST client.
+ * Returns null (gracefully) when env vars are missing.
  */
-export const createRedisClient = () => {
-    if (!REDIS_URL) return null;
-
-    const client = new Redis(REDIS_URL, {
-        tls: { rejectUnauthorized: false },
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times) => Math.min(times * 200, 5000),
-        lazyConnect: true,           // don't connect until first command / .connect()
-        enableReadyCheck: true,
-    });
-
-    client.on('connect', () => console.log('[Redis] ✅ Connected'));
-    client.on('error',   (err) => console.error('[Redis] ❌ Error:', err.message));
-
-    return client;
-};
-
-/**
- * Singleton client for general commands (non pub/sub).
- * Lazy-inited on first import.
- */
-let _defaultClient = null;
-
 export const getRedisClient = () => {
-    if (!_defaultClient) _defaultClient = createRedisClient();
-    return _defaultClient;
+    if (_client) return _client;
+
+    const url   = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!url || !token) {
+        console.warn('[Redis] ⚠️  UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set — Redis disabled');
+        return null;
+    }
+
+    _client = new Redis({ url, token });
+    return _client;
 };
 
-export default { createRedisClient, getRedisClient };
+export default { getRedisClient };

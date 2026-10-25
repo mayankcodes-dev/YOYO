@@ -31,7 +31,9 @@ provider:
     STRIPE_SECRET_KEY:     ${ssm:/yoyo/prod/STRIPE_SECRET_KEY}
     STRIPE_WEBHOOK_SECRET: ${ssm:/yoyo/prod/STRIPE_WEBHOOK_SECRET}
     GEMINI_API_KEY:        ${ssm:/yoyo/prod/GEMINI_API_KEY}
-    UPSTASH_REDIS_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_URL}
+    UPSTASH_REDIS_URL:          ${ssm:/yoyo/prod/UPSTASH_REDIS_URL}
+    UPSTASH_REDIS_REST_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_REST_URL}
+    UPSTASH_REDIS_REST_TOKEN:   ${ssm:/yoyo/prod/UPSTASH_REDIS_REST_TOKEN}
 
   iam:
     role:

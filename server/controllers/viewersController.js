@@ -1,16 +1,15 @@
 /**
- * viewersController.js — Live viewer count per room via Upstash Redis
+ * viewersController.js — Live viewer count per room via Upstash Redis REST
+ *
+ * Uses @upstash/redis (HTTP) instead of ioredis (TCP) for Lambda compatibility.
+ * TCP connections time out on cold start; REST calls complete in ~50ms.
  *
  * Strategy: HTTP polling (Option B)
- *   • Each browser tab calls POST /join on mount  → Redis INCR roomId TTL 90s
- *   • Each browser tab calls POST /leave on unmount → Redis DECR (floor 0)
+ *   • Each browser tab calls POST /join on mount  → Redis INCR + EXPIRE 90s
+ *   • Each browser tab calls POST /leave on unmount → Redis DECR clamped ≥ 0
  *   • Client polls GET /count every 10 s to refresh badge
  *
- * Key design choices:
- *   1. TTL auto-expires stale counts when tabs crash without firing /leave
- *   2. DECR is clamped to 0 — no negative counts
- *   3. No auth required — anonymous viewers count too
- *   4. On Redis unavailability, falls back to count=0 gracefully (never 500)
+ * All endpoints degrade gracefully to count=0 when Redis is unavailable.
  */
 
 import { getRedisClient } from '../configs/redis.js';
@@ -29,7 +28,7 @@ export const getViewerCount = async (req, res) => {
         res.json({ success: true, count });
     } catch (err) {
         console.warn('[Viewers] getViewerCount error:', err.message);
-        res.json({ success: true, count: 0 }); // degrade gracefully
+        res.json({ success: true, count: 0 });
     }
 };
 
@@ -39,12 +38,12 @@ export const joinRoom = async (req, res) => {
         const redis = getRedisClient();
         if (!redis) return res.json({ success: true, count: 0 });
 
-        const key = KEY(req.params.id);
-        // INCR + EXPIRE in a pipeline — atomic, no race
-        const [[, count]] = await redis.pipeline()
-            .incr(key)
-            .expire(key, TTL_S)
-            .exec();
+        const key   = KEY(req.params.id);
+        // @upstash/redis: run INCR and EXPIRE in parallel (REST multi-call)
+        const [count] = await Promise.all([
+            redis.incr(key),
+            redis.expire(key, TTL_S),
+        ]);
 
         res.json({ success: true, count: Math.max(0, count) });
     } catch (err) {
@@ -53,21 +52,23 @@ export const joinRoom = async (req, res) => {
     }
 };
 
-/** POST /api/rooms/:id/viewers/leave — decrement (called on component unmount) */
+/** POST /api/rooms/:id/viewers/leave — decrement clamped ≥ 0 */
 export const leaveRoom = async (req, res) => {
     try {
         const redis = getRedisClient();
         if (!redis) return res.json({ success: true, count: 0 });
 
         const key = KEY(req.params.id);
-        // Lua script: DECR but clamp to 0
-        const script = `
-            local v = redis.call('get', KEYS[1])
-            if not v or tonumber(v) <= 0 then return 0 end
-            return redis.call('decr', KEYS[1])
-        `;
-        const count = await redis.eval(script, 1, key);
-        res.json({ success: true, count: Math.max(0, count) });
+        // Lua script: DECR but clamp to 0 — @upstash/redis supports eval
+        const count = await redis.eval(
+            `local v = redis.call('get', KEYS[1])
+             if not v or tonumber(v) <= 0 then return 0 end
+             return redis.call('decr', KEYS[1])`,
+            [key],   // KEYS
+            [],      // ARGV
+        );
+
+        res.json({ success: true, count: Math.max(0, Number(count)) });
     } catch (err) {
         console.warn('[Viewers] leaveRoom error:', err.message);
         res.json({ success: true, count: 0 });
