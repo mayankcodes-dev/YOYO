@@ -31,8 +31,7 @@ provider:
     STRIPE_SECRET_KEY:     ${ssm:/yoyo/prod/STRIPE_SECRET_KEY}
     STRIPE_WEBHOOK_SECRET: ${ssm:/yoyo/prod/STRIPE_WEBHOOK_SECRET}
     GEMINI_API_KEY:        ${ssm:/yoyo/prod/GEMINI_API_KEY}
-    # Live viewer count via Upstash Redis — add to SSM after deploy if not set
-    UPSTASH_REDIS_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_URL, ''}
+    UPSTASH_REDIS_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_URL}
 
   iam:
     role:
