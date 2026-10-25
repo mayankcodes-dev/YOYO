@@ -12,11 +12,11 @@ import Booking from '../models/Booking.js';
 import Review  from '../models/Review.js';
 import { ok, fail } from '../utils/respond.js';
 
-// Correct model names for this API key (verified via ModelService.ListModels):
-// gemini-1.5-flash and gemini-1.5-flash-8b are no longer available on v1beta.
-// Use gemini-2.5-flash (primary, free tier) and gemini-2.5-flash-lite (faster fallback).
-const GEMINI_MODEL          = 'gemini-2.5-flash';
-const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash-lite';
+// Model names verified via ModelService.ListModels + API error messages (Oct 2026).
+// Using stable alias 'gemini-flash-latest' as primary (always resolves to newest flash model)
+// and 'gemini-flash-lite-latest' as fallback for rate-limit / overload situations.
+const GEMINI_MODEL          = 'gemini-flash-latest';
+const GEMINI_MODEL_FALLBACK = 'gemini-flash-lite-latest';
 
 // ── Lazy-initialised Gemini client ───────────────────────────────
 let _genAI = null;
