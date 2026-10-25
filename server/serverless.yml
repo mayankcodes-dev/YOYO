@@ -54,6 +54,35 @@ functions:
           path: /
           method: ANY
 
+  # H-3 FIX: cron jobs as separate Lambda functions triggered by EventBridge Scheduler.
+  # AWS EventBridge Scheduler is free tier (1 M invocations/month free).
+  # These replace node-cron in scheduler.js which only ran inside server.js (EC2/local).
+  autoCancelUnpaid:
+    handler: lambdaCron.autoCancelHandler
+    description: Auto-cancel unpaid pending bookings older than 30 minutes
+    memorySize: 256
+    timeout: 60
+    events:
+      # Every 15 minutes — cron(min hour dom month dow year)
+      - schedule:
+          rate: cron(0/15 * * * ? *)
+          enabled: true
+          name: yoyo-auto-cancel-unpaid-${self:provider.stage}
+          description: Cancel unpaid bookings older than 30 min
+
+  sendCheckInReminders:
+    handler: lambdaCron.reminderHandler
+    description: Send check-in reminder emails to guests checking in tomorrow
+    memorySize: 256
+    timeout: 120
+    events:
+      # Daily at 8:00 AM IST = 2:30 AM UTC
+      - schedule:
+          rate: cron(30 2 * * ? *)
+          enabled: true
+          name: yoyo-checkin-reminders-${self:provider.stage}
+          description: Send check-in reminder emails daily at 8 AM IST
+
 package:
   individually: false
   patterns:
@@ -67,3 +96,5 @@ package:
     - '!uploadAssets.js'
     - '!ecosystem.config.cjs'
     - '!.env*'
+    # Explicitly include cron handler so it is always bundled
+    - 'lambdaCron.js'

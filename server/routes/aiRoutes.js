@@ -1,8 +1,9 @@
 import express    from 'express';
 import rateLimit  from 'express-rate-limit';
 import { aiChat, parseSearch, reviewSummary } from '../controllers/aiController.js';
+import { optionalAuth } from '../middleware/authMiddleware.js';
 
-// 30 messages/min per IP — prevent Groq credit abuse
+// 30 messages/min per IP — prevent Gemini credit abuse
 const chatLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 30,
@@ -18,8 +19,10 @@ const searchLimiter = rateLimit({
 
 const aiRouter = express.Router();
 
-aiRouter.post('/chat',                     chatLimiter,   aiChat);
+// M-7 FIX: optionalAuth sets req.user when a valid token is present (without
+// rejecting anonymous visitors). The controller no longer reads userId from req.body.
+aiRouter.post('/chat',                     chatLimiter,   optionalAuth, aiChat);
 aiRouter.post('/parse-search',             searchLimiter, parseSearch);
-aiRouter.get( '/review-summary/:hotelId',                 reviewSummary);
+aiRouter.get( '/review-summary/:hotelId',                reviewSummary);
 
 export default aiRouter;

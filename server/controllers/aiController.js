@@ -12,8 +12,13 @@ import Booking from '../models/Booking.js';
 import Review  from '../models/Review.js';
 import { ok, fail } from '../utils/respond.js';
 
-const GEMINI_MODEL          = 'gemini-3.6-flash';
-const GEMINI_MODEL_FALLBACK = 'gemini-3.5-flash-lite'; // used if primary is overloaded
+// Chatbot fix: 'gemini-3.6-flash' and 'gemini-3.5-flash-lite' do not exist in
+// Google's API — they caused every first-message call to throw a 404, landing
+// in the catch block that shows "I'm temporarily unavailable."
+// Correct free-tier model names (as of 2025): gemini-1.5-flash (primary) and
+// gemini-1.5-flash-8b (lighter fallback, ~2× faster, still free).
+const GEMINI_MODEL          = 'gemini-1.5-flash';
+const GEMINI_MODEL_FALLBACK = 'gemini-1.5-flash-8b';
 
 // ── Lazy-initialised Gemini client ───────────────────────────────
 let _genAI = null;
@@ -33,13 +38,14 @@ const getModel = (systemInstruction, useFallback = false) => {
     });
 };
 
-// Run with automatic fallback on 503 (model overloaded)
+// Run with automatic fallback on 503 (model overloaded) or 429 (rate-limited)
 const geminiRequest = async (systemInstruction, fn) => {
     try {
         return await fn(getModel(systemInstruction, false));
     } catch (err) {
-        if (err.message?.includes('503') || err.message?.includes('high demand')) {
-            console.warn('[AI] Primary model overloaded, trying fallback model');
+        const msg = err.message || '';
+        if (msg.includes('503') || msg.includes('high demand') || msg.includes('429') || msg.includes('overloaded')) {
+            console.warn('[AI] Primary model unavailable, trying fallback model');
             return await fn(getModel(systemInstruction, true));
         }
         throw err;
@@ -94,8 +100,14 @@ const getQuickReplies = (msg) => {
 // ── POST /api/ai/chat ─────────────────────────────────────────────
 export const aiChat = async (req, res) => {
     try {
-        const { message, history = [], userId } = req.body;
+        const { message, history = [] } = req.body;
         if (!message?.trim()) return fail(res, 'Message is required');
+
+        // M-7 FIX: do NOT read userId from req.body — that was an IDOR vulnerability
+        // because any caller could pass another user's MongoDB ID and see their booking context.
+        // Instead, derive the user ID from the verified JWT on req.user (set by authMiddleware),
+        // or skip personalized context when the request is unauthenticated.
+        const userId = req.user?._id ?? null;
 
         // Build system context (optionally enriched with user's last booking)
         let systemContext = MAYA_SYSTEM_PROMPT;
