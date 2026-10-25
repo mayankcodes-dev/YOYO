@@ -246,9 +246,6 @@ const RoomDetails = () => {
             {room.hotel.address}
           </div>
         </div>
-
-        {/* ── Live Viewers badge ───────────────────────── */}
-        <LiveViewers roomId={id} />
       </motion.div>
 
       {/* ── Image Gallery ────────────────────────────────────── */}

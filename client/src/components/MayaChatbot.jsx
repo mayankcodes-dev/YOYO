@@ -92,7 +92,7 @@ const MayaChatbot = () => {
       const { data } = await axios.post('/api/ai/chat', {
         message: userText,
         history,
-        userId: user?._id,
+        // M-7: userId removed from body — server now reads it from the JWT (optionalAuth middleware)
       });
 
       if (data.success) {
