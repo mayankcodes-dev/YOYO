@@ -1,4 +1,49 @@
-node_modules
-.env
 
-# https://www.youtube.com/watch?v=ubM9cX8G_gk
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment files — ALL contain real secrets, never commit
+# Secrets now live in Vercel env vars (frontend) and AWS SSM / Lambda env (backend)
+# client/.env.production was deleted — replaced by Vercel project env vars
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+server/.env
+server/.env.*
+
+# Build output
+dist/
+dev-dist/
+build/
+.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AI / dev context files (LLM workspace — keep local only)
+.ai-context.md
+AI_CONTEXT.md
+.ai/
+docs/
+
+# Serverless Framework deployment artifacts (large zip — never commit)
+.serverless/

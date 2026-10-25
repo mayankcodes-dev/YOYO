@@ -1,0 +1,114 @@
+# serverless.yml — AWS Lambda deployment config for YoYo backend
+# Deploy with: serverless deploy --stage prod
+
+service: yoyo-backend
+
+provider:
+  name: aws
+  runtime: nodejs20.x          # LTS; nodejs22.x causes Serverless Framework validator warning
+  region: ap-south-1
+  stage: ${opt:stage, 'prod'}
+  architecture: arm64
+
+  memorySize: 512
+  timeout: 29
+
+  environment:
+    NODE_ENV:              production
+    MONGODB_URL:           ${ssm:/yoyo/prod/MONGODB_URL}
+    JWT_SECRET:            ${ssm:/yoyo/prod/JWT_SECRET}
+    JWT_REFRESH_SECRET:    ${ssm:/yoyo/prod/JWT_REFRESH_SECRET}
+    PASSWORD_PEPPER:       ${ssm:/yoyo/prod/PASSWORD_PEPPER}
+    GOOGLE_CLIENT_ID:      ${ssm:/yoyo/prod/GOOGLE_CLIENT_ID}
+    ALLOWED_ORIGINS:       ${ssm:/yoyo/prod/ALLOWED_ORIGINS}
+    CLOUDINARY_CLOUD_NAME: ${ssm:/yoyo/prod/CLOUDINARY_CLOUD_NAME}
+    CLOUDINARY_API_KEY:    ${ssm:/yoyo/prod/CLOUDINARY_API_KEY}
+    CLOUDINARY_API_SECRET: ${ssm:/yoyo/prod/CLOUDINARY_API_SECRET}
+    SENDER_EMAIL:          ${ssm:/yoyo/prod/SENDER_EMAIL}
+    SMTP_USER:             ${ssm:/yoyo/prod/SMTP_USER}
+    SMTP_PASS:             ${ssm:/yoyo/prod/SMTP_PASS}
+    STRIPE_PUBLISHABLE_KEY: ${ssm:/yoyo/prod/STRIPE_PUBLISHABLE_KEY}
+    STRIPE_SECRET_KEY:     ${ssm:/yoyo/prod/STRIPE_SECRET_KEY}
+    STRIPE_WEBHOOK_SECRET: ${ssm:/yoyo/prod/STRIPE_WEBHOOK_SECRET}
+    GEMINI_API_KEY:        ${ssm:/yoyo/prod/GEMINI_API_KEY}
+    UPSTASH_REDIS_URL:          ${ssm:/yoyo/prod/UPSTASH_REDIS_URL}
+    UPSTASH_REDIS_REST_URL:     ${ssm:/yoyo/prod/UPSTASH_REDIS_REST_URL}
+    UPSTASH_REDIS_REST_TOKEN:   ${ssm:/yoyo/prod/UPSTASH_REDIS_REST_TOKEN}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParameters
+          Resource:
+            - arn:aws:ssm:ap-south-1:*:parameter/yoyo/prod/*
+        # H-3: EventBridge schedule management (needed for cron functions)
+        - Effect: Allow
+          Action:
+            - events:PutRule
+            - events:PutTargets
+            - events:DescribeRule
+            - events:ListRules
+            - events:DeleteRule
+            - events:RemoveTargets
+          Resource:
+            - arn:aws:events:ap-south-1:*:rule/*
+
+functions:
+  api:
+    handler: lambda.handler
+    description: YoYo Hotel Booking API
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
+
+  # H-3 FIX: cron jobs as separate Lambda functions triggered by EventBridge Scheduler.
+  # AWS EventBridge Scheduler is free tier (1 M invocations/month free).
+  # These replace node-cron in scheduler.js which only ran inside server.js (EC2/local).
+  autoCancelUnpaid:
+    handler: lambdaCron.autoCancelHandler
+    description: Auto-cancel unpaid pending bookings older than 30 minutes
+    memorySize: 256
+    timeout: 60
+    events:
+      # Every 15 minutes — cron(min hour dom month dow year)
+      - schedule:
+          rate: cron(0/15 * * * ? *)
+          enabled: true
+          name: yoyo-auto-cancel-unpaid-${self:provider.stage}
+          description: Cancel unpaid bookings older than 30 min
+
+  sendCheckInReminders:
+    handler: lambdaCron.reminderHandler
+    description: Send check-in reminder emails to guests checking in tomorrow
+    memorySize: 256
+    timeout: 120
+    events:
+      # Daily at 8:00 AM IST = 2:30 AM UTC
+      - schedule:
+          rate: cron(30 2 * * ? *)
+          enabled: true
+          name: yoyo-checkin-reminders-${self:provider.stage}
+          description: Send check-in reminder emails daily at 8 AM IST
+
+package:
+  individually: false
+  patterns:
+    - '!node_modules/.cache/**'
+    - '!node_modules/aws-sdk/**'
+    - '!*.test.js'
+    - '!**/*.test.js'
+    - '!addHotels.js'
+    - '!addCategoryHotels.js'
+    - '!seedData.js'
+    - '!uploadAssets.js'
+    - '!ecosystem.config.cjs'
+    - '!.env*'
+    # Explicitly include cron handler so it is always bundled
+    - 'lambdaCron.js'

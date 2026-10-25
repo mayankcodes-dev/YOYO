@@ -5,22 +5,49 @@
   "type": "module",
   "scripts": {
     "server": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "upload-assets": "node uploadAssets.js",
+    "seed": "node seedData.js",
+    "setup": "node uploadAssets.js && node seedData.js",
+    "deploy": "serverless deploy --stage prod",
+    "deploy:dev": "serverless deploy --stage dev",
+    "logs": "serverless logs -f api --tail",
+    "remove": "serverless remove --stage prod"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@clerk/express": "^1.7.45",
+    "@google/generative-ai": "^0.24.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@upstash/redis": "^1.39.0",
+    "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "google-auth-library": "^10.6.2",
+    "helmet": "^8.2.0",
+    "hpp": "^0.2.3",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.11",
-    "stripe": "^20.1.0",
-    "svix": "^1.81.0"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^10.2.1",
+    "serverless-http": "^4.0.0",
+    "socket.io": "^4.8.3",
+    "stripe": "^20.1.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "jest": "^30.4.2",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2"
   }
 }

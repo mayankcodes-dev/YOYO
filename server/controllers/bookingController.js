@@ -1,214 +1,436 @@
-import transporter from "../configs/nodemailer.js";
-import Booking from "../models/Booking.js";
-import Hotel from "../models/Hotel.js";
-import Room from "../models/Room.js";
-import stripe from "stripe";
+import mongoose      from 'mongoose';
+import transporter  from '../configs/nodemailer.js';
+import Booking      from '../models/Booking.js';
+import Hotel        from '../models/Hotel.js';
+import Room         from '../models/Room.js';
 
-// function to check availibility of rooms for given date range
-const checkAvailibility = async ({checkInDate, checkOutDate, room})=>{
+import stripe       from 'stripe';
+import crypto       from 'crypto';
+import { bookingBus } from '../events/bookingEvents.js';
+import { ok, fail } from '../utils/respond.js';
+
+// ── Coupons ──────────────────────────────────────────────────────
+const COUPONS = {
+    YOYO10:    { type: 'percent', value: 10  },
+    YOYO20:    { type: 'percent', value: 20  },
+    // H-5 FIX: WELCOME50 is restricted to users with zero paid bookings.
+    // The `firstBookingOnly` flag is checked in createBooking before applying.
+    WELCOME50: { type: 'flat',    value: 50,  firstBookingOnly: true },
+    FLAT500:   { type: 'flat',    value: 500 },
+};
+
+// ─── Constants ────────────────────────────────────────────────
+const TAX_RATE    = 0.12; // 12% GST
+const SERVICE_FEE = 99;   // ₹99 flat
+
+// ─── Helpers ─────────────────────────────────────────────────
+const calcBreakdown = (pricePerNight, nights, couponCode = '') => {
+    const base     = pricePerNight * nights;
+    const coupon   = COUPONS[couponCode?.toUpperCase()];
+    const discount = coupon
+        ? coupon.type === 'percent'
+            ? Math.round(base * coupon.value / 100)
+            : Math.min(coupon.value, base)
+        : 0;
+    const subtotal   = base - discount;
+    const taxAmount  = Math.round(subtotal * TAX_RATE);
+    const grandTotal = subtotal + taxAmount + SERVICE_FEE;
+    return { base, discount, taxAmount, serviceFee: SERVICE_FEE, grandTotal };
+};
+
+// Reusable grand-total calc from a saved booking document
+const calcGrandTotal = (b) => b.totalPrice + b.taxAmount + b.serviceFee - b.discountAmount;
+
+const checkAvailability = async ({ checkInDate, checkOutDate, room }) => {
     try {
         const bookings = await Booking.find({
             room,
-            checkInDate: {$lte: checkOutDate},
-            checkOutDate: {$gte: checkInDate}
+            status: { $ne: 'cancelled' },
+            checkInDate:  { $lte: checkOutDate },
+            checkOutDate: { $gte: checkInDate  },
         });
-        const isAvailable = bookings.length === 0;
-        return isAvailable;
-    } catch (error) {
-        return false;
-    }
-}
+        return bookings.length === 0;
+    } catch { return false; }
+};
 
-//api to check room availibility
-// POST /api/bookings/check-availibility
-export const checkAvailibilityAPI = async (req, res) =>{
+// ── Booking confirmation email ────────────────────────────────
+const sendBookingEmail = async (toEmail, username, roomData, booking) => {
+    const nights = Math.ceil(
+        (new Date(booking.checkOutDate) - new Date(booking.checkInDate)) / 86400000
+    );
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f6f6fc;font-family:'Inter',Arial,sans-serif">
+  <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:#E8003D;padding:32px 24px;text-align:center">
+      <span style="font-family:Arial,sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px">YoYo</span>
+      <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px">Booking Confirmed 🎉</p>
+    </div>
+    <div style="padding:32px 24px">
+      <p style="font-size:16px;color:#0d0d1a;margin-bottom:4px">Dear <strong>${username}</strong>,</p>
+      <p style="font-size:14px;color:#4a4a6a;margin-top:4px">Your booking is confirmed. Here are the details:</p>
+      <div style="background:#f6f6fc;border-radius:12px;padding:20px;margin:20px 0">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:8px 0;color:#8888aa">Hotel</td><td style="padding:8px 0;color:#0d0d1a;font-weight:600;text-align:right">${roomData.hotel.name}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">Room</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${roomData.roomType}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">City</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${roomData.hotel.city}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">Check-In</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${new Date(booking.checkInDate).toDateString()}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">Check-Out</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${new Date(booking.checkOutDate).toDateString()}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">Guests</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${booking.guests}</td></tr>
+          <tr><td style="padding:8px 0;color:#8888aa">Nights</td><td style="padding:8px 0;color:#0d0d1a;text-align:right">${nights}</td></tr>
+          <tr style="border-top:1px solid #ededf7"><td style="padding:12px 0 8px;color:#0d0d1a;font-weight:700">Total Paid</td><td style="padding:12px 0 8px;color:#E8003D;font-weight:700;text-align:right">₹${calcGrandTotal(booking).toLocaleString('en-IN')}</td></tr>
+        </table>
+      </div>
+      <div style="background:#E8003D;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;margin-bottom:24px">
+        <strong>Booking ID:</strong> ${booking._id}
+      </div>
+      <p style="color:#8888aa;font-size:12px">Free cancellation up to 48 hours before check-in. For support, reply to this email.</p>
+    </div>
+    <div style="background:#f6f6fc;padding:16px 24px;text-align:center">
+      <p style="color:#8888aa;font-size:12px;margin:0">© 2025 YoYo Rooms. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+    await transporter.sendMail({
+        from: `"YoYo Rooms" <${process.env.SENDER_EMAIL}>`,
+        to: toEmail,
+        subject: `Booking Confirmed — ${roomData.hotel.name} 🎉`,
+        html,
+    }).catch(err => console.warn('Email failed:', err.message));
+};
+
+// ──────────────────────────────────────────────────────────────
+// PUBLIC: POST /api/bookings/check-availability
+// ──────────────────────────────────────────────────────────────
+export const checkAvailibilityAPI = async (req, res) => {
     try {
         const { room, checkInDate, checkOutDate } = req.body;
-        const isAvailable = await checkAvailibility({room, checkInDate, checkOutDate});
-        res.json({ success: true, isAvailable });
+        const isAvailable = await checkAvailability({ room, checkInDate, checkOutDate });
+        ok(res, { isAvailable });
     } catch (error) {
-        res.json({ success: true, message: error.message });      
-    }
-}
-
-//api to create booking
-// POST /api/bookings/book
-
-export const createBooking = async (req, res)=>{
-    try {
-        const { room, checkInDate, checkOutDate, guests} = req.body;
-        const user = req.user._id;
-
-        // before booking check if room is available 
-        const isAvailable = await checkAvailibility({
-            room,
-            checkInDate,
-            checkOutDate
-        });
-        if(!isAvailable){
-            return res.json({success: false, message: 'Room is not available for the selected dates'});
-        }
-
-        // get totalPrice
-        const roomData = await Room.findById(room).populate('hotel');
-        let totalPrice = roomData.pricePerNight;
-
-        //calculate number of nights
-        const checkIn = new Date(checkInDate);
-        const checkOut = new Date(checkOutDate);
-        const timeDiff = checkOut.getTime() - checkIn.getTime();
-        const nights = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-        totalPrice *= nights;
-        // create booking
-        const booking = await Booking.create({
-            user,
-            room,
-            hotel: roomData.hotel._id,
-            guests: +guests,
-            checkInDate,
-            checkOutDate,
-            totalPrice,
-        })
-
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: req.user.email,
-            subject: 'Booking Details',
-            html: `
-            <h2> Your Booking Details </h2>
-            <p>Dear, ${req.user.username},</p>
-            <p>Thank you for booking !Here are your details:</p>
-            <ul>
-                <li><strong>Hotel:</strong> ${roomData.hotel.name}</li>
-                <li><strong>Room Type:</strong> ${roomData.roomType}</li>
-                <li><strong>Check-In Date:</strong> ${new Date(checkInDate).toLocaleDateString()}</li>
-                <li><strong>Check-Out Date:</strong> ${new Date(checkOutDate).toLocaleDateString()}</li>
-                <li><strong>Guests:</strong> ${guests}</li>
-                <li><strong>Total Price:</strong> $${totalPrice}</li>
-            </ul>
-            <p>Thank you for choosing our service!</p>
-            `,
-        }
-
-        await transporter.sendMail(mailOptions)
-
-        res.json({success: true, message: 'Booking created successfully', booking});
-
-    } catch (error) {
-        res.json({success: false, message: error.message});
+        fail(res, error.message);
     }
 };
 
-//api to get all bookings of a user
-// GET /api/bookings/user
-
-export const getUserBookings = async (req, res)=>{
+// ──────────────────────────────────────────────────────────────
+// PUBLIC: POST /api/bookings/validate-coupon
+// ──────────────────────────────────────────────────────────────
+export const validateCoupon = async (req, res) => {
     try {
-        const user = req.user._id;
-        const bookings = await Booking.find({user}).populate('room hotel').sort({createAt: -1});
-        res.json({success: true, bookings});
-    } catch (error) {
-        res.json({success: false, message: error.message});
-    }
-}
+        const { code, totalPrice } = req.body;
+        const coupon = COUPONS[code?.toUpperCase()];
+        if (!coupon) return fail(res, 'Invalid coupon code');
 
-export const getHotelBookings = async (req, res)=>{
-    try {
-        const hotel = await Hotel.findOne({owner: req.auth().userId});
-        if(!hotel){
-            return res.json({ success: false, message: 'No hotel found for this owner' });
+        // H-5 FIX: Reject first-booking-only coupons (e.g. WELCOME50) at
+        // validation time so the UI discount preview is honest and the final
+        // booking step cannot be circumvented with a stale coupon reference.
+        if (coupon.firstBookingOnly && req.user) {
+            const priorPaidCount = await Booking.countDocuments({
+                user:   req.user._id,
+                isPaid: true,
+            });
+            if (priorPaidCount > 0) {
+                return fail(res, `Coupon ${code.toUpperCase()} is valid for first booking only`);
+            }
         }
-        const bookings = await Booking.find({hotel: hotel._id}).populate('room hotel user').sort({createdAt: -1});
-        //total bookings
-        const totalBookings = bookings.length;
-        //total revenue
-        const totalRevenue = bookings.reduce((total, booking) => total + booking.totalPrice, 0);
 
-        res.json({ success: true, dashboardData: { bookings, totalBookings, totalRevenue }});
+        const discount = coupon.type === 'percent'
+            ? Math.round(totalPrice * coupon.value / 100)
+            : Math.min(coupon.value, totalPrice);
+
+        ok(res, {
+            discount,
+            message: coupon.type === 'percent'
+                ? `${coupon.value}% off applied!`
+                : `₹${coupon.value} off applied!`,
+        });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        fail(res, error.message);
     }
-}
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: POST /api/bookings/book
+// ──────────────────────────────────────────────────────────────
+export const createBooking = async (req, res) => {
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
+
+        const { room, checkInDate, checkOutDate, guests, paymentMethod, couponCode } = req.body;
+
+        // ── Atomic availability check inside the transaction ──────
+        const conflict = await Booking.findOne({
+            room,
+            status: { $ne: 'cancelled' },
+            checkInDate:  { $lte: checkOutDate },
+            checkOutDate: { $gte: checkInDate  },
+        }).session(session);
+
+        if (conflict) {
+            await session.abortTransaction();
+            return fail(res, 'Room is not available for the selected dates');
+        }
+
+        const roomData = await Room.findById(room).populate('hotel').session(session);
+        if (!roomData) {
+            await session.abortTransaction();
+            return fail(res, 'Room not found', 404);
+        }
+
+        const nights = Math.ceil(
+            (new Date(checkOutDate) - new Date(checkInDate)) / 86400000
+        );
+
+        const { base, discount, taxAmount, serviceFee, grandTotal } =
+            calcBreakdown(roomData.pricePerNight, nights, couponCode);
+
+        // H-5 FIX: enforce firstBookingOnly coupons (e.g. WELCOME50).
+        // Count the user's previously paid bookings INSIDE the transaction so the
+        // check is consistent with concurrent requests.
+        const couponDef = COUPONS[couponCode?.toUpperCase()];
+        if (couponDef?.firstBookingOnly && discount > 0) {
+            const priorPaidCount = await Booking.countDocuments({
+                user:   req.user._id,
+                isPaid: true,
+            }).session(session);
+            if (priorPaidCount > 0) {
+                await session.abortTransaction();
+                return fail(res, `Coupon ${couponCode.toUpperCase()} is valid for first booking only`);
+            }
+        }
+
+        const [booking] = await Booking.create([{
+            user:          req.user._id,
+            room,
+            hotel:         roomData.hotel._id,
+            guests:        +guests,
+            checkInDate,
+            checkOutDate,
+            totalPrice:    base,
+            taxAmount,
+            serviceFee,
+            couponCode:    couponCode?.toUpperCase() || '',
+            discountAmount:discount,
+            paymentMethod: paymentMethod || 'pay at hotel',
+        }], { session });
+
+        await session.commitTransaction();
+
+        // Non-blocking: send confirmation email
+        sendBookingEmail(req.user.email, req.user.username, roomData, booking);
+
+        // Event Bus: notify owner + broadcast availability
+        bookingBus.emit('booking:created', {
+            booking,
+            roomId:  room,
+            ownerId: roomData.hotel.owner?.toString(),
+        });
+
+        ok(res, { message: 'Booking created successfully', booking, breakdown: { base, discount, taxAmount, serviceFee, grandTotal } });
+    } catch (error) {
+        if (session.inTransaction()) await session.abortTransaction();
+        fail(res, error.message);
+    } finally {
+        session.endSession();
+    }
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: GET /api/bookings/user
+// Query params: ?page=1&limit=10  (defaults: page=1, limit=10)
+// ──────────────────────────────────────────────────────────────
+export const getUserBookings = async (req, res) => {
+    try {
+        const p = Math.max(1, parseInt(req.query.page)  || 1);
+        const l = Math.min(50, parseInt(req.query.limit) || 50); // default 50 for backward-compat
+
+        const [bookings, total] = await Promise.all([
+            Booking.find({ user: req.user._id })
+                .populate('room hotel')
+                .sort({ createdAt: -1 })
+                .skip((p - 1) * l)
+                .limit(l),
+            Booking.countDocuments({ user: req.user._id }),
+        ]);
+
+        ok(res, {
+            bookings,
+            pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) },
+        });
+    } catch (error) {
+        fail(res, error.message);
+    }
+};
 
 
-export const stripePayment = async (req, res) =>{
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: GET /api/bookings/hotel  (hotelOwner)
+// ──────────────────────────────────────────────────────────────
+export const getHotelBookings = async (req, res) => {
+    try {
+        const hotel = await Hotel.findOne({ owner: req.user._id });
+        if (!hotel) return fail(res, 'No hotel found for this owner', 404);
+
+        const bookings = await Booking.find({ hotel: hotel._id })
+            .populate('room hotel')
+            .sort({ createdAt: -1 });
+
+        const totalRevenue = bookings
+            .filter(b => b.isPaid)
+            .reduce((sum, b) => sum + calcGrandTotal(b), 0);
+
+        // Build daily revenue for last 30 days
+        const today = new Date();
+        const daily = {};
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date(today); d.setDate(d.getDate() - i);
+            daily[d.toISOString().split('T')[0]] = 0;
+        }
+        bookings.filter(b => b.isPaid).forEach(b => {
+            const key = new Date(b.createdAt).toISOString().split('T')[0];
+            // H-6 FIX: use calcGrandTotal (includes tax + service fee - discount)
+            // instead of b.totalPrice (base only), which understated revenue by ~13%.
+            if (key in daily) daily[key] += calcGrandTotal(b);
+        });
+        const revenueData    = Object.entries(daily).map(([date, revenue]) => ({ date, revenue }));
+        const occupancyRate  = Math.round((bookings.filter(b => b.status === 'confirmed').length / Math.max(bookings.length, 1)) * 100);
+
+        ok(res, { dashboardData: { bookings, totalBookings: bookings.length, totalRevenue, revenueData, occupancyRate } });
+    } catch (error) {
+        fail(res, error.message);
+    }
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: PATCH /api/bookings/:id/cancel  (user)
+// ──────────────────────────────────────────────────────────────
+export const cancelBooking = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const booking = await Booking.findOne({ _id: id, user: req.user._id });
+        if (!booking) return fail(res, 'Booking not found', 404);
+        if (booking.status === 'cancelled') return fail(res, 'Booking already cancelled');
+
+        const hoursUntilCheckIn = (new Date(booking.checkInDate) - Date.now()) / 3600000;
+        const refundEligible    = hoursUntilCheckIn >= 48;
+
+        booking.status       = 'cancelled';
+        booking.cancelledAt  = new Date();
+        booking.refundStatus = booking.isPaid && refundEligible ? 'pending' : 'none';
+        await booking.save();
+
+        ok(res, {
+            message: refundEligible
+                ? 'Booking cancelled. Refund will be processed in 5-7 business days.'
+                : 'Booking cancelled. No refund (within 48h of check-in).',
+            refundEligible,
+        });
+
+        bookingBus.emit('booking:cancelled', { booking, roomId: booking.room?.toString() });
+    } catch (error) {
+        fail(res, error.message);
+    }
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: PATCH /api/bookings/:id/status  (hotelOwner)
+// ──────────────────────────────────────────────────────────────
+export const updateBookingStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!['pending', 'confirmed', 'cancelled'].includes(status))
+            return fail(res, 'Invalid status');
+
+        const hotel = await Hotel.findOne({ owner: req.user._id });
+        if (!hotel) return fail(res, 'Hotel not found', 404);
+
+        const booking = await Booking.findOneAndUpdate(
+            { _id: id, hotel: hotel._id },
+            { status },
+            { new: true }
+        );
+        if (!booking) return fail(res, 'Booking not found', 404);
+
+        ok(res, { message: `Booking ${status}`, booking });
+    } catch (error) {
+        fail(res, error.message);
+    }
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: POST /api/bookings/stripe-payment
+// ──────────────────────────────────────────────────────────────
+export const stripePayment = async (req, res) => {
     try {
         const { bookingId } = req.body;
-        const booking = await Booking.findById(bookingId)
+
+        // C-4 FIX: scope lookup to the requesting user to prevent IDOR.
+        // Previously `findById(bookingId)` allowed any authenticated user to
+        // initiate a Stripe session for another user's booking.
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user._id });
+        if (!booking) return fail(res, 'Booking not found', 404);
+
         const roomData = await Room.findById(booking.room).populate('hotel');
-        const totalPrice = booking.totalPrice; // in cents
         const { origin } = req.headers;
 
         const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-
-        const line_items = [
-            {
+        const session = await stripeInstance.checkout.sessions.create({
+            line_items: [{
                 price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        name: roomData.hotel.name,
-                    },
-                    unit_amount: totalPrice * 100, // amount in cents
+                    currency: 'inr',
+                    product_data: { name: `${roomData.hotel.name} — ${roomData.roomType}` },
+                    unit_amount: calcGrandTotal(booking) * 100, // paisa
                 },
                 quantity: 1,
-            },
-        ];
-
-        //checkout session
-        const session  = await stripeInstance.checkout.sessions.create({
-            line_items,
+            }],
             mode: 'payment',
             success_url: `${origin}/loader/my-bookings`,
-            cancel_url: `${origin}/my-bookings`,
-            metadata:{
-                bookingId: bookingId.toString(),
-            }
-        })
-        res.json({success: true, url: session.url});
-    } catch (error) {
-        res.json({success: false, message: error.message});
-    }
-}
+            cancel_url:  `${origin}/my-bookings`,
+            metadata: { bookingId: bookingId.toString() },
+        });
 
-// API to verify stripe payment and update booking status
+        // C-5 FIX: persist the Stripe session ID so verifyStripePayment can look
+        // it up by ID (O(1)) rather than listing the last 100 sessions (O(n) + rate-limit risk).
+        await Booking.findByIdAndUpdate(bookingId, { stripeSessionId: session.id });
+
+        ok(res, { url: session.url });
+    } catch (error) {
+        fail(res, error.message);
+    }
+};
+
+// ──────────────────────────────────────────────────────────────
+// PROTECTED: POST /api/bookings/verify-payment  (Stripe)
+// ──────────────────────────────────────────────────────────────
 export const verifyStripePayment = async (req, res) => {
     try {
         const { bookingId } = req.body;
-        
-        if (!bookingId) {
-            return res.json({ success: false, message: 'Booking ID is required' });
-        }
+        if (!bookingId) return fail(res, 'Booking ID required');
+
+        // C-4 FIX: also scope this lookup to the requesting user.
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user._id });
+        if (!booking) return fail(res, 'Booking not found', 404);
+
+        // C-5 FIX: retrieve the Stripe session by its stored ID (O(1)) instead of
+        // listing the last 100 sessions and doing a linear scan (O(n)), which
+        // exhausts Stripe rate limits under load and misses sessions older than #100.
+        if (!booking.stripeSessionId) return fail(res, 'No Stripe session linked to this booking');
 
         const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-        
-        // Find checkout sessions with this bookingId in metadata
-        const sessions = await stripeInstance.checkout.sessions.list({
-            limit: 100,
-        });
-        
-        // Find the session for this booking
-        const session = sessions.data.find(s => s.metadata?.bookingId === bookingId);
-        
+        const session = await stripeInstance.checkout.sessions.retrieve(booking.stripeSessionId);
+
         if (session && session.payment_status === 'paid') {
-            // Update booking as paid
-            const updatedBooking = await Booking.findByIdAndUpdate(
-                bookingId, 
-                {
-                    isPaid: true,
-                    paymentMethod: 'Stripe',
-                },
-                { new: true }
-            );
-            
-            if (updatedBooking) {
-                return res.json({ success: true, message: 'Payment verified and booking updated' });
-            }
-            return res.json({ success: false, message: 'Booking not found' });
+            await Booking.findByIdAndUpdate(bookingId, { isPaid: true, paymentMethod: 'stripe', status: 'confirmed' });
+            return ok(res, { message: 'Payment verified' });
         }
-        
-        res.json({ success: false, message: 'Payment not completed or session not found' });
+        fail(res, 'Payment not completed');
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        fail(res, error.message);
     }
-}
+};

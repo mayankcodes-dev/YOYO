@@ -1,48 +1,100 @@
-import express from 'express';
-import 'dotenv/config';
-import cors from 'cors';
-import connectDB from './configs/db.js';
-import { clerkMiddleware } from '@clerk/express'
-import clerkWebhooks from './controllers/clerkWebhooks.js';
-import userRouter from './routes/userRoutes.js';
-import hotelRouter from './routes/hotelRoutes.js';
-import roomRouter from './routes/roomRoutes.js';
-import connectCloudinary from './configs/cloudinary.js';
-import bookingRouter from './routes/bookingRoutes.js';
-import { stripeWebhooks } from './controllers/stripeWebhooks.js';
+/**
+ * server.js — Local dev / EC2 entry point
+ *
+ * Adds Socket.io + HTTP server on top of the pure Express app (app.js).
+ * NOT used on AWS Lambda — see lambda.js for that.
+ *
+ * Run with: node server.js  (or via PM2: pm2 start ecosystem.config.cjs)
+ */
 
-const app = express();
+import { createServer }  from 'http';
+import { Server }        from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import mongoose          from 'mongoose';
+import connectDB         from './configs/db.js';
+import { createRedisClient } from './configs/redis.js';
+import { startScheduler } from './jobs/scheduler.js';
+import { initSocket }    from './socket/socketManager.js';
+import app               from './app.js';
 
-connectCloudinary();
+// ── HTTP Server (needed for Socket.io) ───────────────────────────
+const server = createServer(app);
 
-app.use(cors({ origin: true, credentials: true }));
-
-// Webhook routes (must be before express.json())
-app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
-app.post('/api/clerk', express.json({ type: 'application/json' }), clerkWebhooks);
-
-// Middlewares
-app.use(express.json());
-app.use(clerkMiddleware());
-
-// Routes
-app.get('/', (req, res) => res.send('API is working...'));
-app.use('/api/user', userRouter);
-app.use('/api/hotels', hotelRouter);
-app.use('/api/rooms', roomRouter);
-app.use('/api/bookings', bookingRouter);
-
-const PORT = process.env.PORT || 3000;
-
-const startServer = async () => {
-    try {
-        await connectDB();
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    } catch (error) {
-        process.exit(1);
+// ── CORS for Socket.io (reuse same origins as Express) ───────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
+const checkOrigin = (origin, cb) => {
+    if (!origin ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+        cb(null, true);
+    } else {
+        cb(new Error('CORS: Origin not allowed'));
     }
 };
 
-startServer();
+// ── Socket.io ────────────────────────────────────────────────────
+const io = new Server(server, {
+    cors: {
+        origin:      checkOrigin,
+        credentials: true,
+        methods:     ['GET', 'POST'],
+    },
+    transports: ['websocket', 'polling'],
+});
 
-export default app;
+initSocket(io);
+
+// ── Redis adapter (enables multi-instance Socket.io) ─────────────
+const pubClient = createRedisClient();
+const subClient = createRedisClient();
+
+if (pubClient && subClient) {
+    Promise.all([pubClient.connect(), subClient.connect()])
+        .then(() => {
+            io.adapter(createAdapter(pubClient, subClient));
+            console.log('✅ Socket.io Redis adapter attached (Upstash)');
+        })
+        .catch((err) => {
+            console.warn('⚠️  Redis adapter failed — falling back to in-memory:', err.message);
+        });
+} else {
+    console.warn('⚠️  Redis not configured — Socket.io using in-memory adapter (single instance only)');
+}
+
+// Make io available to route handlers via app.locals
+app.locals.io = io;
+
+// ── Start ─────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 4000;
+
+connectDB()
+    .then(() => {
+        server.listen(PORT, () => {
+            console.log(`🚀 YoYo server running on port ${PORT}`);
+            console.log(`✅ Socket.io ready`);
+            startScheduler();
+        });
+    })
+    .catch(() => process.exit(1));
+
+// ── Graceful Shutdown (SIGTERM from AWS EC2 / Ctrl-C) ────────────
+const shutdown = async (signal) => {
+    console.log(`\n[Server] ${signal} received — shutting down gracefully…`);
+    server.close(async () => {
+        try {
+            await mongoose.disconnect();
+            console.log('[Server] MongoDB disconnected. Exiting cleanly.');
+        } catch (err) {
+            console.error('[Server] Error during shutdown:', err.message);
+        }
+        process.exit(0);
+    });
+    setTimeout(() => {
+        console.error('[Server] Graceful shutdown timed out — forcing exit.');
+        process.exit(1);
+    }, 10_000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
