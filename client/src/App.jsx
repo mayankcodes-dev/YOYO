@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
 import { useAppContext } from "./context/AppContext";
 import Navbar            from "./components/Navbar";
 import Footer            from "./components/Footer";
@@ -146,6 +147,7 @@ const App = () => {
         )}
 
         {!hideShell && <Footer />}
+        <Analytics />
       </div>
     </HelmetProvider>
   );
