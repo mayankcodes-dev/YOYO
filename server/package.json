@@ -17,7 +17,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "YoYo Rooms — Express 5 backend deployed on AWS Lambda via Serverless Framework",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@socket.io/redis-adapter": "^8.3.0",

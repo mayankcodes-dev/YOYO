@@ -56,7 +56,8 @@ const App = () => {
   const isAdminPath  = pathname.startsWith("/admin");
   const isAuthPage   = pathname === "/login" || pathname === "/register";
   const isLoaderPage = pathname.startsWith("/loader");
-  const hideShell    = isOwnerPath || isAdminPath || isAuthPage || isLoaderPage;
+  // Loader page keeps Navbar/Footer — only owner/admin/auth hide the shell
+  const hideShell    = isOwnerPath || isAdminPath || isAuthPage;
 
   return (
     <HelmetProvider>
@@ -78,56 +79,71 @@ const App = () => {
         {showHotelReg && <HotelReg />}
 
         {/* Maya AI Chatbot — shown on public pages only */}
-        {!hideShell && <MayaChatbot />}
+        {!hideShell && !isLoaderPage && <MayaChatbot />}
 
         {/* PWA — install banner + update prompt (global, always rendered) */}
         <PWAInstallBanner />
         <PWAUpdatePrompt />
 
-        <div className={`min-h-[70vh] ${!hideShell ? "pt-16 sm:pb-0 pb-24" : ""}`}>
-          <Suspense fallback={<PageLoader />}>
-            <PageTransition>
+        {/*
+          Loader route is rendered OUTSIDE PageTransition to avoid Framer Motion's
+          CSS stacking context (scale + filter: blur) which breaks position:fixed/flex centering.
+          All other routes go through PageTransition as normal.
+        */}
+        {isLoaderPage ? (
+          /* Full-height column below the navbar so the card is perfectly centered */
+          <div className="pt-16 flex items-center justify-center" style={{ minHeight: "100dvh" }}>
+            <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* Public */}
-                <Route path="/"                          element={<Home />} />
-                <Route path="/rooms"                     element={<AllRooms />} />
-                <Route path="/rooms/:id"                 element={<RoomDetails />} />
-                <Route path="/login"                     element={<Login />} />
-                <Route path="/register"                  element={<Register />} />
-                <Route path="/loader/:nextUrl"           element={<Loader />} />
-
-                {/* Authenticated user — any logged-in role */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/my-bookings"               element={<MyBookings />} />
-                  <Route path="/profile"                   element={<UserProfile />} />
-                  <Route path="/booking-confirmation/:id"  element={<BookingConfirmation />} />
-                </Route>
-
-                {/* Hotel Owner panel — role: hotelOwner */}
-                <Route element={<ProtectedRoute requiredRole="hotelOwner" redirectTo="/" />}>
-                  <Route path="/owner" element={<Layout />}>
-                    <Route index            element={<Dashboard />} />
-                    <Route path="add-room"  element={<AddRoom />} />
-                    <Route path="list-room" element={<ListRoom />} />
-                    <Route path="edit-hotel" element={<EditHotel />} />
-                  </Route>
-                </Route>
-
-                {/* Admin panel — role: admin */}
-                <Route element={<ProtectedRoute requiredRole="admin" redirectTo="/" />}>
-                  <Route path="/admin" element={<AdminLayout />}>
-                    <Route index            element={<AdminDashboard />} />
-                    <Route path="hotels"    element={<AdminHotels />} />
-                    <Route path="users"     element={<AdminUsers />} />
-                  </Route>
-                </Route>
-
-                {/* 404 catch-all */}
-                <Route path="*" element={<NotFound />} />
+                <Route path="/loader/:nextUrl" element={<Loader />} />
               </Routes>
-            </PageTransition>
-          </Suspense>
-        </div>
+            </Suspense>
+          </div>
+        ) : (
+          <div className={`min-h-[70vh] ${!hideShell ? "pt-16 sm:pb-0 pb-24" : ""}`}>
+            <Suspense fallback={<PageLoader />}>
+              <PageTransition>
+                <Routes>
+                  {/* Public */}
+                  <Route path="/"                          element={<Home />} />
+                  <Route path="/rooms"                     element={<AllRooms />} />
+                  <Route path="/rooms/:id"                 element={<RoomDetails />} />
+                  <Route path="/login"                     element={<Login />} />
+                  <Route path="/register"                  element={<Register />} />
+
+                  {/* Authenticated user — any logged-in role */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/my-bookings"               element={<MyBookings />} />
+                    <Route path="/profile"                   element={<UserProfile />} />
+                    <Route path="/booking-confirmation/:id"  element={<BookingConfirmation />} />
+                  </Route>
+
+                  {/* Hotel Owner panel — role: hotelOwner */}
+                  <Route element={<ProtectedRoute requiredRole="hotelOwner" redirectTo="/" />}>
+                    <Route path="/owner" element={<Layout />}>
+                      <Route index            element={<Dashboard />} />
+                      <Route path="add-room"  element={<AddRoom />} />
+                      <Route path="list-room" element={<ListRoom />} />
+                      <Route path="edit-hotel" element={<EditHotel />} />
+                    </Route>
+                  </Route>
+
+                  {/* Admin panel — role: admin */}
+                  <Route element={<ProtectedRoute requiredRole="admin" redirectTo="/" />}>
+                    <Route path="/admin" element={<AdminLayout />}>
+                      <Route index            element={<AdminDashboard />} />
+                      <Route path="hotels"    element={<AdminHotels />} />
+                      <Route path="users"     element={<AdminUsers />} />
+                    </Route>
+                  </Route>
+
+                  {/* 404 catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </PageTransition>
+            </Suspense>
+          </div>
+        )}
 
         {!hideShell && <Footer />}
       </div>

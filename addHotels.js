@@ -1,5 +1,5 @@
 /**
- * addHotels.js — YoYo Hotel Seed Script
+ * addHotels.js — YoYo Hotel Seed Script (run once to populate MongoDB Atlas)
  * ─────────────────────────────────────
  * Adds 100 new hotels across different Indian cities to MongoDB.
  *

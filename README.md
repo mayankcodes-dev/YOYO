@@ -12,7 +12,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white&style=flat-square)](https://www.mongodb.com/atlas)
 [![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?logo=awslambda&logoColor=white&style=flat-square)](https://aws.amazon.com/lambda/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white&style=flat-square)](https://stripe.com)
-[![Gemini AI](https://img.shields.io/badge/Gemini-1.5_Flash-4285F4?logo=google&logoColor=white&style=flat-square)](https://ai.google.dev)
+[![Gemini AI](https://img.shields.io/badge/Gemini-Flash_Latest-4285F4?logo=google&logoColor=white&style=flat-square)](https://ai.google.dev)
 [![Tests](https://img.shields.io/badge/Tests-8%2F8_passing-22C55E?style=flat-square)](#)
 [![npm audit](https://img.shields.io/badge/npm_audit-0_vulnerabilities-22C55E?style=flat-square)](#)
 

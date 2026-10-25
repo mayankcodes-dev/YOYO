@@ -1,5 +1,5 @@
 // ============================================================
-// YOYO Hotel Booking — Jenkins Declarative Pipeline
+// YOYO Hotel Booking — Jenkins Declarative Pipeline (CI/CD)
 // Domain  : mayankcodes.dev
 // Backend : api.yoyo.mayankcodes.dev  (AWS EC2 t2.micro)
 // Frontend: yoyo.mayankcodes.dev      (Vercel)

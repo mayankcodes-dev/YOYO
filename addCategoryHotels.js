@@ -1,5 +1,5 @@
 /**
- * addCategoryHotels.js — YoYo Category Hotel Seed Script
+ * addCategoryHotels.js — YoYo Category Hotel Seed Script (run once to populate MongoDB Atlas)
  * ────────────────────────────────────────────────────────
  * Adds 5 hotels per category (Budget, Premium, Luxury, Villa, Business)
  * with matching room types (Single Bed, Double Bed, Family Suite,
