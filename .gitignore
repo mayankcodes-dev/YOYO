@@ -1,27 +1,23 @@
 
-
-/.ai
 # Dependencies
 node_modules/
 .pnp
+.pnp.js
 
 # LLM Project Context (keep local only — too large for repo)
 AI_CONTEXT.md
-.pnp.js
 
-# .env.production is committed intentionally — VITE_ vars are PUBLIC (baked into JS bundle)
-# Real secrets live server-side in AWS SSM, never here
-
-# All other .env files have real secrets — never commit
+# Environment files — ALL contain real secrets, never commit
+# Secrets now live in Vercel env vars (frontend) and AWS SSM / Lambda env (backend)
+# client/.env.production was deleted — replaced by Vercel project env vars
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 server/.env
 server/.env.*
-# Allow client/.env.production (only public VITE_ vars, safe for Vercel build)
-!client/.env.production
 
 # Build output
 dist/
@@ -48,9 +44,7 @@ Thumbs.db
 
 # AI / dev context
 .ai-context.md
-
-# Seed scripts — keep in repo for dev reference but don't deploy
-# (they're fine to commit, just excluded from vercel via vercel.json)
+/.ai
 
 # Serverless Framework deployment artifacts (large zip — never commit)
 .serverless/
