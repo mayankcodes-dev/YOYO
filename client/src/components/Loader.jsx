@@ -94,8 +94,8 @@ const Loader = () => {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center px-4"
-      style={{ background: "var(--color-surface)", zIndex: 9999 }}
+      className="min-h-[100dvh] w-full flex items-center justify-center px-4"
+      style={{ background: "var(--color-surface)" }}
     >
       {/* ── Centered card — matches the sign-in success screenshot ── */}
       <motion.div

@@ -47,3 +47,6 @@ docs/
 
 # Serverless Framework deployment artifacts (large zip — never commit)
 .serverless/
+
+# Stray shell flag files (accidentally created by mistyped git commands)
+-w
