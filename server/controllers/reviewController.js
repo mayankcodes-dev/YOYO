@@ -1,5 +1,6 @@
 import Review  from '../models/Review.js';
 import Booking from '../models/Booking.js';
+import Hotel   from '../models/Hotel.js';
 import { ok, fail } from '../utils/respond.js';
 
 // ── POST /api/reviews  (protected user) ──────────────────────
@@ -54,13 +55,18 @@ export const getHotelReviews = async (req, res) => {
 // ── PATCH /api/reviews/:id/response  (protected hotelOwner) ──
 export const ownerResponse = async (req, res) => {
     try {
-        const review = await Review.findByIdAndUpdate(
-            req.params.id,
+        // H-2 FIX: verify the review belongs to the owner's hotel before allowing
+        // a response. Previously any hotelOwner could respond to any hotel's review.
+        const hotel = await Hotel.findOne({ owner: req.user._id });
+        if (!hotel) return fail(res, 'No hotel found for this owner', 404);
+
+        const review = await Review.findOneAndUpdate(
+            { _id: req.params.id, hotel: hotel._id },
             { ownerResponse: req.body.response, ownerResponseAt: new Date() },
             { new: true }
         ).populate('user', 'username image');
 
-        if (!review) return fail(res, 'Review not found', 404);
+        if (!review) return fail(res, 'Review not found or unauthorized', 404);
         ok(res, { review });
     } catch (error) {
         fail(res, error.message);

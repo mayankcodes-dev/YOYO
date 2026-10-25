@@ -40,13 +40,20 @@ const app = express();
 app.set('trust proxy', 1); // AWS API Gateway / Lambda sits behind a proxy
 
 // ── CORS origins ──────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+    .split(',')
+    .map(o => o.trim());
 
 const checkOrigin = (origin, cb) => {
-    if (!origin ||
+    // H-9 FIX: use exact equality (or explicit localhost prefix match) instead of
+    // origin.startsWith(o), which would allow `evil.yoyo.mayankcodes.dev` to pass
+    // when `yoyo.mayankcodes.dev` is in the allowlist.
+    if (
+        !origin ||
         origin.startsWith('http://localhost:') ||
         origin.startsWith('http://127.0.0.1:') ||
-        allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+        allowedOrigins.includes(origin)
+    ) {
         cb(null, true);
     } else {
         cb(new Error('CORS: Origin not allowed'));
@@ -83,9 +90,23 @@ bookingBus.on('booking:cancelled', ({ roomId }) => {
 });
 
 // ── Security ──────────────────────────────────────────────────────
+// H-8 FIX: CSP was fully disabled (contentSecurityPolicy: false).
+// A baseline policy is now enabled. Adjust the directives as needed when
+// you add CDN scripts / fonts — the key principle is "not disabled".
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc:     ["'self'"],
+            scriptSrc:      ["'self'"],
+            styleSrc:       ["'self'", "'unsafe-inline'"],  // keep for email HTML
+            imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com'],
+            connectSrc:     ["'self'"],
+            fontSrc:        ["'self'", 'https:'],
+            objectSrc:      ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
 }));
 
 app.use(cors({

@@ -4,6 +4,18 @@ import { v2 as cloudinary } from 'cloudinary';
 import { ok, fail } from '../utils/respond.js';
 
 // ── POST /api/rooms/  (protected hotelOwner) ──────────────────
+// C-2 FIX: images are now uploaded from the in-memory buffer (memoryStorage),
+// not from a disk path. This works on AWS Lambda where /tmp is ephemeral and
+// diskStorage writes are never cleaned up, risking OOM.
+const uploadBufferToCloudinary = (buffer) =>
+    new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: 'yoyo' },
+            (error, result) => (error ? reject(error) : resolve(result.secure_url))
+        );
+        stream.end(buffer);
+    });
+
 export const createRoom = async (req, res) => {
     try {
         const { roomType, pricePerNight, amenities, category } = req.body;
@@ -12,9 +24,8 @@ export const createRoom = async (req, res) => {
 
         if (!req.files?.length) return fail(res, 'Please upload at least one image');
 
-        const images = await Promise.all(
-            req.files.map(f => cloudinary.uploader.upload(f.path, { folder: 'yoyo' }).then(r => r.secure_url))
-        );
+        // C-2 FIX: use buffer (memoryStorage) → upload_stream instead of f.path (diskStorage)
+        const images = await Promise.all(req.files.map(f => uploadBufferToCloudinary(f.buffer)));
 
         await Room.create({
             hotel: hotel._id,
@@ -93,8 +104,14 @@ export const getOwnerRooms = async (req, res) => {
 // ── POST /api/rooms/toggle-availability  (protected hotelOwner) ─
 export const toggleRoomAvailability = async (req, res) => {
     try {
-        const room = await Room.findById(req.body.roomId);
-        if (!room) return fail(res, 'Room not found', 404);
+        // C-3 FIX: verify the room belongs to the requesting owner's hotel.
+        // Without this check any hotelOwner could toggle a competitor's room.
+        const hotel = await Hotel.findOne({ owner: req.user._id });
+        if (!hotel) return fail(res, 'No hotel found for this owner', 404);
+
+        const room = await Room.findOne({ _id: req.body.roomId, hotel: hotel._id });
+        if (!room) return fail(res, 'Room not found or unauthorized', 404);
+
         room.isAvailable = !room.isAvailable;
         await room.save();
         ok(res, { message: 'Availability updated' });
@@ -121,9 +138,8 @@ export const updateRoom = async (req, res) => {
         if (category)      room.category      = category;
 
         if (req.files?.length) {
-            const newImages = await Promise.all(
-                req.files.map(f => cloudinary.uploader.upload(f.path, { folder: 'yoyo' }).then(r => r.secure_url))
-            );
+            // C-2 FIX: use buffer (memoryStorage) → upload_stream instead of f.path
+            const newImages = await Promise.all(req.files.map(f => uploadBufferToCloudinary(f.buffer)));
             room.images = [...room.images, ...newImages].slice(0, 4);
         }
 
@@ -138,7 +154,7 @@ export const updateRoom = async (req, res) => {
 export const deleteRoom = async (req, res) => {
     try {
         const { id } = req.params;
-        const hotel  = await Hotel.findOne({ owner: req.user._id.toString() });
+        const hotel  = await Hotel.findOne({ owner: req.user._id });
         if (!hotel) return fail(res, 'Hotel not found', 404);
 
         const room = await Room.findOneAndUpdate(

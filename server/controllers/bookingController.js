@@ -1,3 +1,4 @@
+import mongoose      from 'mongoose';
 import transporter  from '../configs/nodemailer.js';
 import Booking      from '../models/Booking.js';
 import Hotel        from '../models/Hotel.js';
@@ -8,11 +9,13 @@ import crypto       from 'crypto';
 import { bookingBus } from '../events/bookingEvents.js';
 import { ok, fail } from '../utils/respond.js';
 
-// ─── Coupons ──────────────────────────────────────────────────
+// ── Coupons ──────────────────────────────────────────────────────
 const COUPONS = {
     YOYO10:    { type: 'percent', value: 10  },
     YOYO20:    { type: 'percent', value: 20  },
-    WELCOME50: { type: 'flat',    value: 50  },
+    // H-5 FIX: WELCOME50 is restricted to users with zero paid bookings.
+    // The `firstBookingOnly` flag is checked in createBooking before applying.
+    WELCOME50: { type: 'flat',    value: 50,  firstBookingOnly: true },
     FLAT500:   { type: 'flat',    value: 500 },
 };
 
@@ -121,6 +124,19 @@ export const validateCoupon = async (req, res) => {
         const coupon = COUPONS[code?.toUpperCase()];
         if (!coupon) return fail(res, 'Invalid coupon code');
 
+        // H-5 FIX: Reject first-booking-only coupons (e.g. WELCOME50) at
+        // validation time so the UI discount preview is honest and the final
+        // booking step cannot be circumvented with a stale coupon reference.
+        if (coupon.firstBookingOnly && req.user) {
+            const priorPaidCount = await Booking.countDocuments({
+                user:   req.user._id,
+                isPaid: true,
+            });
+            if (priorPaidCount > 0) {
+                return fail(res, `Coupon ${code.toUpperCase()} is valid for first booking only`);
+            }
+        }
+
         const discount = coupon.type === 'percent'
             ? Math.round(totalPrice * coupon.value / 100)
             : Math.min(coupon.value, totalPrice);
@@ -140,14 +156,30 @@ export const validateCoupon = async (req, res) => {
 // PROTECTED: POST /api/bookings/book
 // ──────────────────────────────────────────────────────────────
 export const createBooking = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
+        session.startTransaction();
+
         const { room, checkInDate, checkOutDate, guests, paymentMethod, couponCode } = req.body;
 
-        const isAvailable = await checkAvailability({ room, checkInDate, checkOutDate });
-        if (!isAvailable) return fail(res, 'Room is not available for the selected dates');
+        // ── Atomic availability check inside the transaction ──────
+        const conflict = await Booking.findOne({
+            room,
+            status: { $ne: 'cancelled' },
+            checkInDate:  { $lte: checkOutDate },
+            checkOutDate: { $gte: checkInDate  },
+        }).session(session);
 
-        const roomData = await Room.findById(room).populate('hotel');
-        if (!roomData) return fail(res, 'Room not found', 404);
+        if (conflict) {
+            await session.abortTransaction();
+            return fail(res, 'Room is not available for the selected dates');
+        }
+
+        const roomData = await Room.findById(room).populate('hotel').session(session);
+        if (!roomData) {
+            await session.abortTransaction();
+            return fail(res, 'Room not found', 404);
+        }
 
         const nights = Math.ceil(
             (new Date(checkOutDate) - new Date(checkInDate)) / 86400000
@@ -156,7 +188,22 @@ export const createBooking = async (req, res) => {
         const { base, discount, taxAmount, serviceFee, grandTotal } =
             calcBreakdown(roomData.pricePerNight, nights, couponCode);
 
-        const booking = await Booking.create({
+        // H-5 FIX: enforce firstBookingOnly coupons (e.g. WELCOME50).
+        // Count the user's previously paid bookings INSIDE the transaction so the
+        // check is consistent with concurrent requests.
+        const couponDef = COUPONS[couponCode?.toUpperCase()];
+        if (couponDef?.firstBookingOnly && discount > 0) {
+            const priorPaidCount = await Booking.countDocuments({
+                user:   req.user._id,
+                isPaid: true,
+            }).session(session);
+            if (priorPaidCount > 0) {
+                await session.abortTransaction();
+                return fail(res, `Coupon ${couponCode.toUpperCase()} is valid for first booking only`);
+            }
+        }
+
+        const [booking] = await Booking.create([{
             user:          req.user._id,
             room,
             hotel:         roomData.hotel._id,
@@ -169,7 +216,9 @@ export const createBooking = async (req, res) => {
             couponCode:    couponCode?.toUpperCase() || '',
             discountAmount:discount,
             paymentMethod: paymentMethod || 'pay at hotel',
-        });
+        }], { session });
+
+        await session.commitTransaction();
 
         // Non-blocking: send confirmation email
         sendBookingEmail(req.user.email, req.user.username, roomData, booking);
@@ -183,7 +232,10 @@ export const createBooking = async (req, res) => {
 
         ok(res, { message: 'Booking created successfully', booking, breakdown: { base, discount, taxAmount, serviceFee, grandTotal } });
     } catch (error) {
+        if (session.inTransaction()) await session.abortTransaction();
         fail(res, error.message);
+    } finally {
+        session.endSession();
     }
 };
 
@@ -240,7 +292,9 @@ export const getHotelBookings = async (req, res) => {
         }
         bookings.filter(b => b.isPaid).forEach(b => {
             const key = new Date(b.createdAt).toISOString().split('T')[0];
-            if (key in daily) daily[key] += b.totalPrice;
+            // H-6 FIX: use calcGrandTotal (includes tax + service fee - discount)
+            // instead of b.totalPrice (base only), which understated revenue by ~13%.
+            if (key in daily) daily[key] += calcGrandTotal(b);
         });
         const revenueData    = Object.entries(daily).map(([date, revenue]) => ({ date, revenue }));
         const occupancyRate  = Math.round((bookings.filter(b => b.status === 'confirmed').length / Math.max(bookings.length, 1)) * 100);
@@ -315,7 +369,13 @@ export const updateBookingStatus = async (req, res) => {
 export const stripePayment = async (req, res) => {
     try {
         const { bookingId } = req.body;
-        const booking  = await Booking.findById(bookingId);
+
+        // C-4 FIX: scope lookup to the requesting user to prevent IDOR.
+        // Previously `findById(bookingId)` allowed any authenticated user to
+        // initiate a Stripe session for another user's booking.
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user._id });
+        if (!booking) return fail(res, 'Booking not found', 404);
+
         const roomData = await Room.findById(booking.room).populate('hotel');
         const { origin } = req.headers;
 
@@ -335,6 +395,10 @@ export const stripePayment = async (req, res) => {
             metadata: { bookingId: bookingId.toString() },
         });
 
+        // C-5 FIX: persist the Stripe session ID so verifyStripePayment can look
+        // it up by ID (O(1)) rather than listing the last 100 sessions (O(n) + rate-limit risk).
+        await Booking.findByIdAndUpdate(bookingId, { stripeSessionId: session.id });
+
         ok(res, { url: session.url });
     } catch (error) {
         fail(res, error.message);
@@ -349,9 +413,17 @@ export const verifyStripePayment = async (req, res) => {
         const { bookingId } = req.body;
         if (!bookingId) return fail(res, 'Booking ID required');
 
+        // C-4 FIX: also scope this lookup to the requesting user.
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user._id });
+        if (!booking) return fail(res, 'Booking not found', 404);
+
+        // C-5 FIX: retrieve the Stripe session by its stored ID (O(1)) instead of
+        // listing the last 100 sessions and doing a linear scan (O(n)), which
+        // exhausts Stripe rate limits under load and misses sessions older than #100.
+        if (!booking.stripeSessionId) return fail(res, 'No Stripe session linked to this booking');
+
         const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-        const sessions = await stripeInstance.checkout.sessions.list({ limit: 100 });
-        const session  = sessions.data.find(s => s.metadata?.bookingId === bookingId);
+        const session = await stripeInstance.checkout.sessions.retrieve(booking.stripeSessionId);
 
         if (session && session.payment_status === 'paid') {
             await Booking.findByIdAndUpdate(bookingId, { isPaid: true, paymentMethod: 'stripe', status: 'confirmed' });

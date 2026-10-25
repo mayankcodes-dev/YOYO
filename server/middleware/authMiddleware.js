@@ -29,6 +29,22 @@ export const protect = async (req, res, next) => {
   }
 };
 
+// ─── optionalAuth — M-7 FIX ───────────────────────────────────
+// Like protect but NEVER rejects the request. If a valid Bearer token is
+// present, attaches req.user; otherwise leaves req.user undefined and calls
+// next(). Use for public endpoints that benefit from knowing WHO is calling
+// when a token happens to be provided (e.g., /api/ai/chat).
+export const optionalAuth = async (req, _res, next) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ')) return next();
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    const user    = await User.findById(decoded.id);
+    if (user) req.user = user;
+  } catch { /* ignore invalid / expired tokens — user just gets no context */ }
+  next();
+};
+
 // ─── requireAdmin — must follow protect ───────────────────────
 export const requireAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin')

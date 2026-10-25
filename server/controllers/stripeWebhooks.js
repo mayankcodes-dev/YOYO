@@ -27,8 +27,11 @@ export const stripeWebhooks = async (req, res) => {
         const { bookingId } = session.metadata;
 
         if (bookingId) {
+            // C-1 FIX: set status:'confirmed' so the 30-min auto-cancel cron does
+            // not cancel a booking that has already been paid via Stripe.
             await Booking.findByIdAndUpdate(bookingId, {
                 isPaid: true,
+                status: 'confirmed',
                 paymentMethod: 'Stripe',
             });
         }
@@ -42,12 +45,14 @@ export const stripeWebhooks = async (req, res) => {
 
         if (sessions.data.length > 0 && sessions.data[0].metadata?.bookingId) {
             const { bookingId } = sessions.data[0].metadata;
+            // C-1 FIX: keep status in sync with payment on the payment_intent path too.
             await Booking.findByIdAndUpdate(bookingId, {
                 isPaid: true,
+                status: 'confirmed',
                 paymentMethod: 'Stripe',
             });
         }
     }
-    
+
     res.json({ received: true });
 }
