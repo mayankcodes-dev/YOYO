@@ -12,13 +12,11 @@ import Booking from '../models/Booking.js';
 import Review  from '../models/Review.js';
 import { ok, fail } from '../utils/respond.js';
 
-// Chatbot fix: 'gemini-3.6-flash' and 'gemini-3.5-flash-lite' do not exist in
-// Google's API — they caused every first-message call to throw a 404, landing
-// in the catch block that shows "I'm temporarily unavailable."
-// Correct free-tier model names (as of 2025): gemini-1.5-flash (primary) and
-// gemini-1.5-flash-8b (lighter fallback, ~2× faster, still free).
-const GEMINI_MODEL          = 'gemini-1.5-flash';
-const GEMINI_MODEL_FALLBACK = 'gemini-1.5-flash-8b';
+// Correct model names for this API key (verified via ModelService.ListModels):
+// gemini-1.5-flash and gemini-1.5-flash-8b are no longer available on v1beta.
+// Use gemini-2.5-flash (primary, free tier) and gemini-2.5-flash-lite (faster fallback).
+const GEMINI_MODEL          = 'gemini-2.5-flash';
+const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash-lite';
 
 // ── Lazy-initialised Gemini client ───────────────────────────────
 let _genAI = null;
