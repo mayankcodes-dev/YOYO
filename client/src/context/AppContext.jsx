@@ -3,7 +3,10 @@ import { createContext, useState, useContext, useEffect, useCallback, useRef } f
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+// H-1 FIX: env vars moved from .env.production (baked into bundle, leaked in git)
+// to Vercel environment variables (server-side at build time, not exposed to git).
+// VITE_ prefix dropped — Vercel injects these as plain env vars.
+axios.defaults.baseURL = import.meta.env.BACKEND_URL || 'http://localhost:4000';
 
 const AppContext = createContext();
 
@@ -25,7 +28,7 @@ const AUTH_ERRORS = new Set([
 ]);
 
 export const AppProvider = ({ children }) => {
-  const currency = import.meta.env.VITE_CURRENCY || "₹";
+  const currency = import.meta.env.CURRENCY || "₹";
   const navigate  = useNavigate();
 
   // ── Auth state ──────────────────────────────────────────────

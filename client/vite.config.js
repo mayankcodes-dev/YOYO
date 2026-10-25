@@ -8,6 +8,19 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+
+  // ── H-1 FIX: Env vars without VITE_ prefix ──────────────────────────────
+  // Vite only exposes VITE_-prefixed vars to import.meta.env automatically.
+  // User moved secrets to Vercel env vars WITHOUT the VITE_ prefix for
+  // security (never committed to git). We bridge the gap here via `define`
+  // so import.meta.env.BACKEND_URL / CURRENCY / GOOGLE_CLIENT_ID resolve
+  // correctly in the production bundle without re-adding the prefix to Vercel.
+  define: {
+    'import.meta.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL ?? ''),
+    'import.meta.env.CURRENCY':    JSON.stringify(process.env.CURRENCY    ?? '₹'),
+    'import.meta.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID ?? ''),
+  },
+
   plugins: [
     react(),
     tailwindcss(),
