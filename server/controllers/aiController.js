@@ -13,10 +13,10 @@ import Review  from '../models/Review.js';
 import { ok, fail } from '../utils/respond.js';
 
 // Model names verified via ModelService.ListModels + API error messages (Oct 2026).
-// Using stable alias 'gemini-flash-latest' as primary (always resolves to newest flash model)
-// and 'gemini-flash-lite-latest' as fallback for rate-limit / overload situations.
-const GEMINI_MODEL          = 'gemini-flash-latest';
-const GEMINI_MODEL_FALLBACK = 'gemini-flash-lite-latest';
+// Using 'gemini-flash-lite-latest' as primary for fast, sub-2s latency without heavy thinking tokens.
+// 'gemini-flash-latest' is used as fallback.
+const GEMINI_MODEL          = 'gemini-flash-lite-latest';
+const GEMINI_MODEL_FALLBACK = 'gemini-flash-latest';
 
 // ── Lazy-initialised Gemini client ───────────────────────────────
 let _genAI = null;
@@ -36,15 +36,22 @@ const getModel = (systemInstruction, useFallback = false) => {
     });
 };
 
-// Run with automatic fallback on 503 (model overloaded) or 429 (rate-limited)
+const withTimeout = (promise, ms = 15000) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('AI request timed out')), ms)),
+    ]);
+};
+
+// Run with automatic fallback on 503 (model overloaded), 429 (rate-limited), or timeout
 const geminiRequest = async (systemInstruction, fn) => {
     try {
-        return await fn(getModel(systemInstruction, false));
+        return await withTimeout(fn(getModel(systemInstruction, false)), 15000);
     } catch (err) {
         const msg = err.message || '';
-        if (msg.includes('503') || msg.includes('high demand') || msg.includes('429') || msg.includes('overloaded')) {
-            console.warn('[AI] Primary model unavailable, trying fallback model');
-            return await fn(getModel(systemInstruction, true));
+        if (msg.includes('503') || msg.includes('high demand') || msg.includes('429') || msg.includes('overloaded') || msg.includes('timed out')) {
+            console.warn('[AI] Primary model unavailable or timed out, trying fallback model');
+            return await withTimeout(fn(getModel(systemInstruction, true)), 12000);
         }
         throw err;
     }

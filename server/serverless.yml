@@ -5,7 +5,7 @@ service: yoyo-backend
 
 provider:
   name: aws
-  runtime: nodejs20.x          # LTS; nodejs22.x causes Serverless Framework validator warning
+  runtime: nodejs22.x
   region: ap-south-1
   stage: ${opt:stage, 'prod'}
   architecture: arm64
